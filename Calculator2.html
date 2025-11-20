@@ -208,9 +208,12 @@
         }
         .reverse-fields {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 10px;
             margin-top: 10px;
+        }
+        @media (max-width: 768px) {
+            .reverse-fields { grid-template-columns: 1fr; }
         }
 
         /* Progress Bar */
@@ -310,12 +313,16 @@
                 <label style="font-weight:bold; color:var(--warning); display:block; margin-bottom:10px;">🎯 ЦЕЛЕВЫЕ ПОКАЗАТЕЛИ</label>
                 <div class="reverse-fields">
                     <div class="input-group">
-                        <label>Целевой Multiplier (X)</label>
+                        <label>Multiplier (X)</label>
                         <input type="number" id="targetMulti" placeholder="5" min="1" step="1" value="5">
                     </div>
                     <div class="input-group">
-                        <label>или ROI %</label>
-                        <input type="number" id="targetROI" placeholder="400" min="0" step="10" value="400">
+                        <label>ROI %</label>
+                        <input type="number" id="targetROI" placeholder="400" min="0" step="1" value="400">
+                    </div>
+                    <div class="input-group">
+                        <label>Discount %</label>
+                        <input type="number" id="targetDiscount" placeholder="80" min="0" max="99" step="1" value="80">
                     </div>
                 </div>
                 <div style="margin-top:10px; padding:10px; background:#1a1a1a; border-radius:6px; text-align:center;">
@@ -510,6 +517,7 @@
                 // Reverse Mode Inputs
                 document.getElementById('targetMulti').addEventListener('input', onTargetMultiChange);
                 document.getElementById('targetROI').addEventListener('input', onTargetROIChange);
+                document.getElementById('targetDiscount').addEventListener('input', onTargetDiscountChange);
 
                 // Tabs
                 document.querySelectorAll('.tab-btn').forEach(function(btn) {
@@ -673,12 +681,14 @@
 
             function onTargetMultiChange() {
                 var multi = parseFloat(document.getElementById('targetMulti').value) || 1;
-                // Convert multiplier to ROI: ROI = (multi - 1) * 100 + multi * 100 = multi * 100
-                // Actually: if multi = 5, then profitRatio = 5, ROI = 5 * 100 = 500%
-                // But profitRatio = (base - price) / price, so if multi = round(profitRatio), ROI = profitRatio * 100
-                // For simplicity: ROI = multi * 100
+                // Convert multiplier to ROI
                 var roi = multi * 100;
-                document.getElementById('targetROI').value = roi;
+                document.getElementById('targetROI').value = roi.toFixed(0);
+
+                // Convert ROI to Discount: Discount = ROI / (100 + ROI) * 100
+                var discount = (roi / (100 + roi)) * 100;
+                document.getElementById('targetDiscount').value = discount.toFixed(1);
+
                 updateReverseMode();
             }
 
@@ -688,6 +698,27 @@
                 var multi = Math.round(roi / 100);
                 if(multi < 1) multi = 1;
                 document.getElementById('targetMulti').value = multi;
+
+                // Convert ROI to Discount: Discount = ROI / (100 + ROI) * 100
+                var discount = (roi / (100 + roi)) * 100;
+                document.getElementById('targetDiscount').value = discount.toFixed(1);
+
+                updateReverseMode();
+            }
+
+            function onTargetDiscountChange() {
+                var discount = parseFloat(document.getElementById('targetDiscount').value) || 0;
+                if(discount >= 100) discount = 99.9; // Limit to prevent division by zero
+
+                // Convert Discount to ROI: ROI = Discount / (100 - Discount) * 100
+                var roi = (discount / (100 - discount)) * 100;
+                document.getElementById('targetROI').value = roi.toFixed(0);
+
+                // Convert ROI to multiplier
+                var multi = Math.round(roi / 100);
+                if(multi < 1) multi = 1;
+                document.getElementById('targetMulti').value = multi;
+
                 updateReverseMode();
             }
 
