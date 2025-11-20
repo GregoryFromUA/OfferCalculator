@@ -21,6 +21,9 @@ if 'offers' not in st.session_state:
 if 'base_rates' not in st.session_state:
     st.session_state.base_rates = BaseRates()
 
+if 'calculated_offer' not in st.session_state:
+    st.session_state.calculated_offer = None
+
 tabs = st.tabs(["📊 Новый оффер", "📋 Существующие офферы", "📈 Сравнение", "⚙️ Настройки", "💾 Экспорт"])
 
 # ============== TAB 1: Новый оффер ==============
@@ -60,7 +63,10 @@ with tabs[0]:
                 chest_amount=chest_amount
             )
 
-            offer_data = calculator.calculate_offer(offer_name, resources, pack_price)
+            st.session_state.calculated_offer = calculator.calculate_offer(offer_name, resources, pack_price)
+
+        if st.session_state.calculated_offer is not None:
+            offer_data = st.session_state.calculated_offer
 
             st.success("✅ Оффер рассчитан!")
 
@@ -87,9 +93,15 @@ with tabs[0]:
             df = pd.DataFrame([offer_data])
             st.dataframe(df, use_container_width=True)
 
-            if st.button("💾 Добавить в список офферов"):
-                st.session_state.offers.append(offer_data)
-                st.success(f"Оффер '{offer_name}' добавлен!")
+            col_btn1, col_btn2 = st.columns(2)
+            with col_btn1:
+                if st.button("💾 Добавить в список офферов", type="primary"):
+                    st.session_state.offers.append(offer_data)
+                    st.success(f"Оффер '{offer_data['Name']}' добавлен!")
+            with col_btn2:
+                if st.button("🔄 Очистить расчёт"):
+                    st.session_state.calculated_offer = None
+                    st.rerun()
 
 # ============== TAB 2: Существующие офферы ==============
 with tabs[1]:
