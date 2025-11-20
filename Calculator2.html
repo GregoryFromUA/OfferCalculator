@@ -695,14 +695,14 @@
                 if(appData.calcMode !== 'reverse') return;
 
                 var price = parseFloat(document.getElementById('offerPrice').value) || 0;
-                var targetMulti = parseFloat(document.getElementById('targetMulti').value) || 1;
+                var targetROI = parseFloat(document.getElementById('targetROI').value) || 0;
 
-                // Calculate required base value
+                // Calculate required base value using ROI directly (not rounded multiplier)
+                // ROI = profitRatio * 100
                 // profitRatio = (base - price) / price
-                // If we want multi = round(profitRatio), then profitRatio ≈ multi
-                // So: multi = (base - price) / price
-                // base = price * (multi + 1)
-                var requiredBase = price * (targetMulti + 1);
+                // So: base = price * (1 + ROI / 100)
+                var profitRatio = targetROI / 100;
+                var requiredBase = price * (1 + profitRatio);
 
                 document.getElementById('targetBaseValue').innerText = '$' + requiredBase.toFixed(2);
 
