@@ -403,7 +403,10 @@
                 <span>Discount</span>
                 <span id="resDisc" style="font-weight:bold;">0%</span>
             </div>
-            <button class="btn-primary" style="margin-top: 20px;" id="btnAddToHistory">⬇ В сравнение</button>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px;">
+                <button class="btn-primary" id="btnCopyResult">📋 Copy</button>
+                <button class="btn-primary" id="btnAddToHistory">⬇ Сравнить</button>
+            </div>
         </div>
     </div>
 
@@ -542,6 +545,7 @@
                 });
 
                 // Result & History
+                document.getElementById('btnCopyResult').addEventListener('click', copyResultToClipboard);
                 document.getElementById('btnAddToHistory').addEventListener('click', addToHistory);
                 document.getElementById('btnClearHistory').addEventListener('click', clearHistory);
 
@@ -787,6 +791,49 @@
                         'Осталось: <span id="progressRemainingVal" style="color:var(--danger); font-weight:bold;">$' +
                         remaining.toFixed(2) + '</span>';
                 }
+            }
+
+            // --- COPY TO CLIPBOARD ---
+            function copyResultToClipboard() {
+                var name = document.getElementById('offerName').value || 'Offer';
+                var price = parseFloat(document.getElementById('offerPrice').value) || 0;
+                var base = document.getElementById('resBase').innerText;
+                var multi = document.getElementById('resMulti').innerText;
+                var roi = document.getElementById('resRoi').innerText;
+                var disc = document.getElementById('resDisc').innerText;
+
+                // Collect composition
+                var comps = [];
+                document.querySelectorAll('#dynamicInputs .calc-input').forEach(function(inp) {
+                    var val = parseFloat(inp.value);
+                    if(val > 0) {
+                        var res = appData.resources.find(function(r){ return r.id === inp.getAttribute('data-id') });
+                        if(res) comps.push(val + ' ' + res.name);
+                    }
+                });
+                if(document.getElementById('cb_noads').checked) comps.push("No Ads");
+
+                // Format text: "Name ($price): composition. Value: $base (Xx) | ROI% | Discount%"
+                var composition = comps.length > 0 ? comps.join(', ') : 'empty';
+                var text = name + ' ($' + price.toFixed(2) + '): ' + composition +
+                           '. Value: ' + base + ' (' + multi + ') | ROI: ' + roi + ' | Discount: ' + disc;
+
+                // Copy to clipboard
+                navigator.clipboard.writeText(text).then(function() {
+                    // Show feedback
+                    var btn = document.getElementById('btnCopyResult');
+                    var originalText = btn.innerHTML;
+                    btn.innerHTML = '✓ Copied!';
+                    btn.style.background = 'var(--success)';
+
+                    setTimeout(function() {
+                        btn.innerHTML = originalText;
+                        btn.style.background = '';
+                    }, 2000);
+                }).catch(function(err) {
+                    // Fallback for older browsers
+                    alert('Не удалось скопировать. Попробуйте выделить текст вручную:\n\n' + text);
+                });
             }
 
             // --- HISTORY ---
