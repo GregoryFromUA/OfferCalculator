@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Offer Calculator v7.0 - Reverse Mode</title>
+    <style>
+        :root {
+            --primary: #6200ea;
+            --primary-hover: #5000c2;
+            --bg: #121212;
+            --surface: #1e1e1e;
+            --surface-2: #2c2c2c;
+            --text: #ffffff;
+            --text-sec: #b0b0b0;
+            --danger: #cf6679;
+            --success: #4caf50;
+            --warning: #ff9800;
+            --border: #444;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Layout */
+        .main-wrapper {
+            width: 100%;
+            max-width: 1200px;
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 20px;
+        }
+
+        @media (max-width: 850px) {
+            .main-wrapper { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background: var(--surface);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+        }
+
+        /* Controls */
+        h3 { margin: 0 0 15px 0; }
+        
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-weight: bold;
+            transition: 0.2s;
+            font-size: 0.9em;
+            color: white;
+            background: #333;
+        }
+        button:hover { opacity: 0.9; }
+        
+        .btn-primary { background: var(--primary); width: 100%; padding: 12px; font-size: 1em; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-icon { padding: 5px 10px; }
+        .btn-danger { background: var(--danger); }
+        .btn-sec { background: var(--surface-2); border: 1px solid var(--border); }
+
+        input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            color: white;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 1em;
+            margin-bottom: 5px;
+        }
+        input:focus { outline: none; border-color: var(--primary); background: #333; }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .tab-btn {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-sec);
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: 0.2s;
+            font-weight: bold;
+            flex-grow: 1;
+            text-align: center;
+        }
+        .tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+        /* Inputs */
+        .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .input-group label { display: block; margin-bottom: 5px; color: var(--text-sec); font-size: 0.85em; }
+        
+        /* Price Buttons */
+        .price-presets {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .price-tag {
+            background: #333;
+            padding: 10px 5px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            cursor: pointer;
+            border: 1px solid transparent;
+            text-align: center;
+            user-select: none;
+        }
+        .price-tag:hover { border-color: var(--secondary); color: var(--secondary); background: #444; }
+        .price-tag:active { transform: scale(0.95); }
+
+        /* Result */
+        .result-card { position: sticky; top: 20px; text-align: center; border: 2px solid transparent; }
+        .result-main { font-size: 3.5em; font-weight: 800; margin: 10px 0; line-height: 1; }
+        .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 0.8em; text-transform: uppercase; margin-bottom: 5px; }
+        .res-row { display: flex; justify-content: space-between; padding: 12px 0; border-top: 1px solid #444; }
+
+        /* History */
+        .history-container { width: 100%; max-width: 1200px; overflow-x: auto; margin-bottom: 50px; }
+        table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: 8px; min-width: 800px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #333; font-size: 0.9em; }
+        th { background: #252525; color: var(--text-sec); }
+        tr:hover { background: #2c2c2c; }
+
+        /* Modals */
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 100; display: none; justify-content: center; align-items: center; }
+        .overlay.open { display: flex; }
+        .modal { background: var(--surface); padding: 25px; border-radius: 12px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; border: 1px solid var(--border); }
+        .checklist-item { display: flex; align-items: center; justify-content: space-between; padding: 8px; border-bottom: 1px solid #333; }
+        
+        /* Colors */
+        .val-bad { border-color: var(--danger); }
+        .val-bad .result-main, .text-bad { color: var(--danger); }
+        .val-bad .badge { background: var(--danger); color: white; }
+        .val-ok { border-color: var(--warning); }
+        .val-ok .result-main, .text-ok { color: var(--warning); }
+        .val-ok .badge { background: var(--warning); color: black; }
+        .val-good { border-color: var(--success); }
+        .val-good .result-main, .text-good { color: var(--success); }
+        .val-good .badge { background: var(--success); color: white; }
+        .val-epic { border-color: #00e5ff; }
+        .val-epic .result-main, .text-epic { color: #00e5ff; }
+        .val-epic .badge { background: #00e5ff; color: black; }
+        .val-legendary { border-color: #ffd700; box-shadow: 0 0 20px rgba(255, 215, 0, 0.2); }
+        .val-legendary .result-main, .text-legendary { color: #ffd700; }
+        .val-legendary .badge { background: #ffd700; color: black; }
+
+        .tools-bar { width: 100%; max-width: 1200px; display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .tools-bar a { color: var(--text-sec); text-decoration: underline; font-size: 0.9em; cursor: pointer; margin-right: 15px; }
+
+        /* Mode Toggle */
+        .mode-toggle {
+            display: flex;
+            gap: 5px;
+            background: var(--surface-2);
+            padding: 3px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .mode-toggle button {
+            flex: 1;
+            padding: 8px 16px;
+            background: transparent;
+            color: var(--text-sec);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .mode-toggle button.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Reverse Mode */
+        .reverse-section {
+            background: #252525;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin-bottom: 15px;
+        }
+        .reverse-fields {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            margin-top: 15px;
+            padding: 15px;
+            background: #1a1a1a;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+        .progress-bar-bg {
+            width: 100%;
+            height: 30px;
+            background: var(--surface-2);
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid var(--border);
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--success));
+            transition: width 0.3s ease, background 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.85em;
+        }
+        .progress-bar-fill.complete {
+            background: linear-gradient(90deg, var(--success), #00e5ff);
+        }
+        .progress-bar-fill.over {
+            background: linear-gradient(90deg, #ffd700, #ff9800);
+        }
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+        .progress-target {
+            color: var(--text-sec);
+        }
+        .progress-current {
+            font-weight: bold;
+            color: var(--primary);
+        }
+        .progress-remaining {
+            color: var(--warning);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Tools -->
+    <div class="tools-bar">
+        <div>
+            <a id="btnOpenRes">⚙ Ресурсы и Цены</a>
+            <a id="btnExport">💾 Экспорт</a>
+            <a id="btnImportTrigger">📂 Импорт</a>
+            <input type="file" id="importFile" style="display:none">
+        </div>
+        <div>v7.0 Reverse Mode</div>
+    </div>
+
+    <!-- Tabs (No Onclick Here!) -->
+    <div class="tabs" id="tabsContainer">
+        <div class="tab-btn active" data-tab="pack" id="tab_pack">Pack</div>
+        <div class="tab-btn" data-tab="chest" id="tab_chest">Chests</div>
+        <div class="tab-btn" data-tab="blitz" id="tab_blitz">Blitz</div>
+        <div class="tab-btn" data-tab="custom" id="tab_custom">Custom (All)</div>
+    </div>
+
+    <div class="main-wrapper">
+        <!-- Left: Config -->
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 id="tabTitle">Pack Config</h3>
+                <button class="btn-sec btn-icon" id="btnOpenTabConfig">✏ Поля</button>
+            </div>
+
+            <!-- Mode Toggle -->
+            <div class="mode-toggle">
+                <button id="modeNormal" class="active">📊 Обычный</button>
+                <button id="modeReverse">🎯 Конструктор</button>
+            </div>
+
+            <div class="input-group" style="margin-bottom: 20px;">
+                <label>Название Офера</label>
+                <input type="text" id="offerName" placeholder="Название">
+            </div>
+
+            <!-- Reverse Mode Section -->
+            <div class="reverse-section" id="reverseSection" style="display:none;">
+                <label style="font-weight:bold; color:var(--warning); display:block; margin-bottom:10px;">🎯 ЦЕЛЕВЫЕ ПОКАЗАТЕЛИ</label>
+                <div class="reverse-fields">
+                    <div class="input-group">
+                        <label>Целевой Multiplier (X)</label>
+                        <input type="number" id="targetMulti" placeholder="5" min="1" step="1" value="5">
+                    </div>
+                    <div class="input-group">
+                        <label>или ROI %</label>
+                        <input type="number" id="targetROI" placeholder="400" min="0" step="10" value="400">
+                    </div>
+                </div>
+                <div style="margin-top:10px; padding:10px; background:#1a1a1a; border-radius:6px; text-align:center;">
+                    <div style="font-size:0.85em; color:var(--text-sec);">Требуемая базовая стоимость:</div>
+                    <div style="font-size:1.8em; font-weight:bold; color:var(--warning); margin-top:5px;" id="targetBaseValue">$0.00</div>
+                </div>
+            </div>
+            
+            <div id="dynamicInputs" class="input-grid"></div>
+
+            <div style="margin-top: 15px; padding-top:10px; border-top: 1px solid #333;">
+                <label style="display:flex; align-items:center; cursor:pointer; gap: 10px;">
+                    <input type="checkbox" id="cb_noads" style="width:20px; height:20px;">
+                    <span style="font-weight:bold;">NO ADS</span>
+                    <span style="color:#666; font-size:0.9em;">(Base: +$<span id="lbl_noads_price">10</span>)</span>
+                </label>
+            </div>
+
+            <!-- Progress Bar (Reverse Mode) -->
+            <div class="progress-container" id="progressContainer" style="display:none;">
+                <div style="font-weight:bold; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+                    <span>📈 Прогресс сборки</span>
+                    <span id="progressPercent" style="color:var(--warning);">0%</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="progressFill" style="width:0%;">
+                        <span id="progressText"></span>
+                    </div>
+                </div>
+                <div class="progress-info">
+                    <div class="progress-target">
+                        Цель: <span id="progressTargetVal" style="font-weight:bold;">$0.00</span>
+                    </div>
+                    <div class="progress-current">
+                        Текущая: <span id="progressCurrentVal">$0.00</span>
+                    </div>
+                    <div class="progress-remaining" id="progressRemainingDiv">
+                        Осталось: <span id="progressRemainingVal">$0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Price Section -->
+            <div style="margin-top: 25px; background: #252525; padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                <label style="color: var(--secondary); font-weight: bold; display:block; margin-bottom:5px;">ЦЕНА ПАКА ($)</label>
+                
+                <input type="number" id="offerPrice" step="0.5" min="0.49" value="0.99" style="font-size: 1.4em; font-weight: bold; color: var(--warning);">
+                
+                <!-- Price Presets (No Onclick!) -->
+                <div class="price-presets" id="pricePresetsContainer">
+                    <div class="price-tag" data-val="0.99">$0.99</div>
+                    <div class="price-tag" data-val="1.99">$1.99</div>
+                    <div class="price-tag" data-val="2.99">$2.99</div>
+                    <div class="price-tag" data-val="3.99">$3.99</div>
+                    <div class="price-tag" data-val="4.99">$4.99</div>
+                    <div class="price-tag" data-val="7.99">$7.99</div>
+                    <div class="price-tag" data-val="9.99">$9.99</div>
+                    <div class="price-tag" data-val="14.99">$14.99</div>
+                    <div class="price-tag" data-val="19.99">$19.99</div>
+                    <div class="price-tag" data-val="24.99">$24.99</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Result -->
+        <div class="card result-card val-ok" id="resCard">
+            <div class="badge" id="resBadge">Ready</div>
+            <div style="color: #888; font-size: 0.9em; margin-top:5px;">Multiplier (X Value)</div>
+            <div class="result-main" id="resMulti">0x</div>
+            <div style="font-size: 1.5em; font-weight: bold; margin-bottom: 15px;">
+                <span id="resRoi">0%</span> MORE
+            </div>
+            <div class="res-row">
+                <span>Base Value</span>
+                <span id="resBase" style="font-weight:bold; font-size:1.2em;">$0.00</span>
+            </div>
+            <div class="res-row">
+                <span>Discount</span>
+                <span id="resDisc" style="font-weight:bold;">0%</span>
+            </div>
+            <button class="btn-primary" style="margin-top: 20px;" id="btnAddToHistory">⬇ В сравнение</button>
+        </div>
+    </div>
+
+    <!-- History -->
+    <div class="history-container">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <h3>История сравнений</h3>
+            <button class="btn-sec btn-icon" id="btnClearHistory">Очистить</button>
+        </div>
+        <table id="historyTable">
+            <thead>
+                <tr>
+                    <th>Название</th>
+                    <th>Цена</th>
+                    <th>Состав</th>
+                    <th>Base</th>
+                    <th>Disc</th>
+                    <th>ROI</th>
+                    <th>Multi</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+        </table>
+    </div>
+
+    <!-- Modals -->
+    <div class="overlay" id="modalResources">
+        <div class="modal">
+            <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+                <h3>Базовые Цены</h3>
+                <button class="btn-icon" id="btnCloseResModal">✖</button>
+            </div>
+            <div id="resourceListEditor"></div>
+            <div style="margin-top:20px; padding-top:10px; border-top:1px solid #444;">
+                <h4>Новый ресурс</h4>
+                <input type="text" id="newResName" placeholder="Название" style="margin-bottom:5px;">
+                <input type="number" id="newResPrice" placeholder="Цена ($)" step="0.01" style="margin-bottom:10px;">
+                <button class="btn-primary" id="btnAddNewRes">Добавить</button>
+                <button class="btn-sec" id="btnResetDefaults" style="margin-top:10px; width:100%;">Сброс к стандарту</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay" id="modalTabConfig">
+        <div class="modal">
+            <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+                <h3>Поля вкладки</h3>
+                <button class="btn-icon" id="btnCloseTabModal">✖</button>
+            </div>
+            <div id="tabFieldList"></div>
+            <button class="btn-primary" style="margin-top:15px;" id="btnSaveTabConfig">Применить</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // --- CONFIGURATION ---
+            var defaultResources = [
+                { id: 'gem', name: 'Gem', price: 0.0125 },
+                { id: 'skip', name: 'SkipIt', price: 0.3 },
+                { id: 'tnt', name: 'TNT', price: 0.06 },
+                { id: 'nitro', name: 'Nitro', price: 0.03 },
+                { id: 's_chest', name: 'Small Chest', price: 0.75 },
+                { id: 'b_chest', name: 'Big Chest', price: 3.75 },
+                { id: 'noads', name: 'No Ads', price: 10.0, isSpecial: true } 
+            ];
+
+            var defaultTabConfig = {
+                'pack': ['gem', 'skip'],
+                'chest': ['s_chest', 'b_chest', 'skip'],
+                'blitz': ['tnt', 'nitro'],
+                'custom': ['gem', 'skip', 'tnt', 'nitro', 's_chest', 'b_chest']
+            };
+
+            var appData = {
+                resources: JSON.parse(JSON.stringify(defaultResources)),
+                tabConfig: JSON.parse(JSON.stringify(defaultTabConfig)),
+                history: [],
+                currentTab: 'pack',
+                calcMode: 'normal' // 'normal' or 'reverse'
+            };
+
+            // --- INITIALIZATION ---
+            
+            function init() {
+                safeLoad();
+                switchTab(appData.currentTab);
+                updateNoAdsLabel();
+                renderHistory();
+                bindEvents();
+
+                // Restore calc mode
+                if(appData.calcMode === 'reverse') {
+                    setCalcMode('reverse');
+                }
+            }
+
+            function bindEvents() {
+                // Top Bar
+                document.getElementById('btnOpenRes').addEventListener('click', openResourceSettings);
+                document.getElementById('btnExport').addEventListener('click', exportData);
+                document.getElementById('btnImportTrigger').addEventListener('click', function() { document.getElementById('importFile').click(); });
+                document.getElementById('importFile').addEventListener('change', function() { importData(this); });
+
+                // Mode Toggle
+                document.getElementById('modeNormal').addEventListener('click', function() { setCalcMode('normal'); });
+                document.getElementById('modeReverse').addEventListener('click', function() { setCalcMode('reverse'); });
+
+                // Reverse Mode Inputs
+                document.getElementById('targetMulti').addEventListener('input', onTargetMultiChange);
+                document.getElementById('targetROI').addEventListener('input', onTargetROIChange);
+
+                // Tabs
+                document.querySelectorAll('.tab-btn').forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        var tab = this.getAttribute('data-tab');
+                        switchTab(tab);
+                    });
+                });
+
+                // Config Buttons
+                document.getElementById('btnOpenTabConfig').addEventListener('click', openTabConfig);
+                document.getElementById('cb_noads').addEventListener('change', calculate);
+                document.getElementById('offerPrice').addEventListener('input', calculate);
+
+                // Price Presets
+                document.getElementById('pricePresetsContainer').addEventListener('click', function(e) {
+                    if(e.target.classList.contains('price-tag')) {
+                        var val = e.target.getAttribute('data-val');
+                        document.getElementById('offerPrice').value = val;
+                        calculate();
+                    }
+                });
+
+                // Result & History
+                document.getElementById('btnAddToHistory').addEventListener('click', addToHistory);
+                document.getElementById('btnClearHistory').addEventListener('click', clearHistory);
+
+                // Modals
+                document.getElementById('btnCloseResModal').addEventListener('click', function() { closeModal('modalResources'); });
+                document.getElementById('btnCloseTabModal').addEventListener('click', function() { closeModal('modalTabConfig'); });
+                
+                document.getElementById('btnAddNewRes').addEventListener('click', addNewResource);
+                document.getElementById('btnResetDefaults').addEventListener('click', resetDefaults);
+                document.getElementById('btnSaveTabConfig').addEventListener('click', saveTabConfig);
+            }
+
+            // --- STORAGE ---
+            function safeSave() {
+                try { localStorage.setItem('gemini_calc_v6', JSON.stringify(appData)); } catch(e) {}
+            }
+            function safeLoad() {
+                try {
+                    var saved = localStorage.getItem('gemini_calc_v6');
+                    if (saved) {
+                        appData = JSON.parse(saved);
+                        if(!appData.resources) appData.resources = JSON.parse(JSON.stringify(defaultResources));
+                        if(!appData.calcMode) appData.calcMode = 'normal'; // Default to normal mode
+                    }
+                } catch(e) {}
+            }
+
+            // --- CORE ---
+            function switchTab(tabName) {
+                appData.currentTab = tabName;
+                document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+                var activeBtn = document.getElementById('tab_' + tabName);
+                if(activeBtn) activeBtn.classList.add('active');
+                safeSave();
+                renderInputs();
+                calculate();
+            }
+
+            function renderInputs() {
+                var container = document.getElementById('dynamicInputs');
+                container.innerHTML = '';
+                var activeFields = appData.tabConfig[appData.currentTab] || [];
+                
+                activeFields.forEach(function(resId) {
+                    var res = appData.resources.find(function(r){ return r.id === resId });
+                    if (!res || res.isSpecial) return; 
+                    
+                    var div = document.createElement('div');
+                    div.className = 'input-group';
+                    div.innerHTML = '<label>' + escapeHtml(res.name) + '</label>' +
+                                    '<input type="number" class="calc-input" data-id="' + res.id + '" placeholder="0">';
+                    
+                    var inp = div.querySelector('input');
+                    inp.addEventListener('input', calculate);
+                    container.appendChild(div);
+                });
+            }
+
+            function calculate() {
+                var baseValue = 0;
+                var inputs = document.querySelectorAll('#dynamicInputs .calc-input');
+                inputs.forEach(function(inp) {
+                    var count = parseFloat(inp.value) || 0;
+                    var res = appData.resources.find(function(r){ return r.id === inp.getAttribute('data-id') });
+                    if(res) baseValue += count * res.price;
+                });
+
+                var cb = document.getElementById('cb_noads');
+                if(cb && cb.checked) {
+                    var na = appData.resources.find(function(r){ return r.id === 'noads' });
+                    if(na) baseValue += na.price;
+                }
+
+                var price = parseFloat(document.getElementById('offerPrice').value) || 0;
+                
+                var multi = 0;
+                var roi = 0;
+                var disc = 0;
+
+                if (price > 0 && baseValue > 0) {
+                    var profitRatio = (baseValue - price) / price;
+                    multi = Math.max(1, Math.round(profitRatio));
+                    roi = profitRatio * 100;
+                    disc = (1 - (price / baseValue)) * 100;
+                }
+
+                document.getElementById('resBase').innerText = '$' + baseValue.toFixed(2);
+                document.getElementById('resMulti').innerText = multi + "x"; 
+                document.getElementById('resRoi').innerText = Math.max(0, roi).toFixed(0) + '%';
+                document.getElementById('resDisc').innerText = Math.max(0, disc).toFixed(0) + '%';
+
+                var card = document.getElementById('resCard');
+                var badge = document.getElementById('resBadge');
+                card.className = 'card result-card';
+                
+                if(price <= 0 || baseValue <= 0) {
+                    card.classList.add('val-ok'); badge.innerText = "Введи данные";
+                } else if (roi < 0) {
+                    card.classList.add('val-bad'); badge.innerText = "Bad Deal";
+                } else if (roi < 100) {
+                    card.classList.add('val-ok'); badge.innerText = "Normal";
+                } else if (roi < 250) {
+                    card.classList.add('val-good'); badge.innerText = "Good";
+                } else if (roi < 500) {
+                    card.classList.add('val-epic'); badge.innerText = "Epic";
+                } else {
+                    card.classList.add('val-legendary'); badge.innerText = "Legendary";
+                }
+
+                // Update reverse mode if active
+                if(appData.calcMode === 'reverse') {
+                    updateReverseMode();
+                }
+            }
+
+            // --- REVERSE MODE ---
+            function setCalcMode(mode) {
+                appData.calcMode = mode;
+
+                // Update button states
+                if(mode === 'normal') {
+                    document.getElementById('modeNormal').classList.add('active');
+                    document.getElementById('modeReverse').classList.remove('active');
+                    document.getElementById('reverseSection').style.display = 'none';
+                    document.getElementById('progressContainer').style.display = 'none';
+                } else {
+                    document.getElementById('modeNormal').classList.remove('active');
+                    document.getElementById('modeReverse').classList.add('active');
+                    document.getElementById('reverseSection').style.display = 'block';
+                    document.getElementById('progressContainer').style.display = 'block';
+                    updateReverseMode();
+                }
+
+                safeSave();
+                calculate();
+            }
+
+            function onTargetMultiChange() {
+                var multi = parseFloat(document.getElementById('targetMulti').value) || 1;
+                // Convert multiplier to ROI: ROI = (multi - 1) * 100 + multi * 100 = multi * 100
+                // Actually: if multi = 5, then profitRatio = 5, ROI = 5 * 100 = 500%
+                // But profitRatio = (base - price) / price, so if multi = round(profitRatio), ROI = profitRatio * 100
+                // For simplicity: ROI = multi * 100
+                var roi = multi * 100;
+                document.getElementById('targetROI').value = roi;
+                updateReverseMode();
+            }
+
+            function onTargetROIChange() {
+                var roi = parseFloat(document.getElementById('targetROI').value) || 0;
+                // Convert ROI to multiplier
+                var multi = Math.round(roi / 100);
+                if(multi < 1) multi = 1;
+                document.getElementById('targetMulti').value = multi;
+                updateReverseMode();
+            }
+
+            function updateReverseMode() {
+                if(appData.calcMode !== 'reverse') return;
+
+                var price = parseFloat(document.getElementById('offerPrice').value) || 0;
+                var targetMulti = parseFloat(document.getElementById('targetMulti').value) || 1;
+
+                // Calculate required base value
+                // profitRatio = (base - price) / price
+                // If we want multi = round(profitRatio), then profitRatio ≈ multi
+                // So: multi = (base - price) / price
+                // base = price * (multi + 1)
+                var requiredBase = price * (targetMulti + 1);
+
+                document.getElementById('targetBaseValue').innerText = '$' + requiredBase.toFixed(2);
+
+                // Update progress bar
+                updateProgressBar(requiredBase);
+            }
+
+            function updateProgressBar(targetBase) {
+                // Calculate current base value
+                var baseValue = 0;
+                var inputs = document.querySelectorAll('#dynamicInputs .calc-input');
+                inputs.forEach(function(inp) {
+                    var count = parseFloat(inp.value) || 0;
+                    var res = appData.resources.find(function(r){ return r.id === inp.getAttribute('data-id') });
+                    if(res) baseValue += count * res.price;
+                });
+
+                var cb = document.getElementById('cb_noads');
+                if(cb && cb.checked) {
+                    var na = appData.resources.find(function(r){ return r.id === 'noads' });
+                    if(na) baseValue += na.price;
+                }
+
+                var remaining = targetBase - baseValue;
+                var percent = targetBase > 0 ? (baseValue / targetBase) * 100 : 0;
+                percent = Math.min(percent, 100);
+
+                var progressFill = document.getElementById('progressFill');
+                var progressText = document.getElementById('progressText');
+
+                progressFill.style.width = percent + '%';
+                document.getElementById('progressPercent').innerText = percent.toFixed(0) + '%';
+                document.getElementById('progressTargetVal').innerText = '$' + targetBase.toFixed(2);
+                document.getElementById('progressCurrentVal').innerText = '$' + baseValue.toFixed(2);
+
+                // Update fill color and text based on progress
+                progressFill.className = 'progress-bar-fill';
+                if(percent >= 100) {
+                    progressFill.classList.add('complete');
+                    progressText.innerText = '✓ Цель достигнута!';
+                    document.getElementById('progressRemainingDiv').innerHTML =
+                        '<span style="color:var(--success);">✓ Превышение: <span id="progressRemainingVal">$' +
+                        Math.abs(remaining).toFixed(2) + '</span></span>';
+                    if(percent > 100) {
+                        progressFill.classList.remove('complete');
+                        progressFill.classList.add('over');
+                    }
+                } else {
+                    progressText.innerText = percent.toFixed(0) + '%';
+                    document.getElementById('progressRemainingDiv').innerHTML =
+                        'Осталось: <span id="progressRemainingVal" style="color:var(--danger); font-weight:bold;">$' +
+                        remaining.toFixed(2) + '</span>';
+                }
+            }
+
+            // --- HISTORY ---
+            function addToHistory() {
+                var price = parseFloat(document.getElementById('offerPrice').value) || 0;
+                var baseText = document.getElementById('resBase').innerText;
+                var base = parseFloat(baseText.replace('$',''));
+                if(price <= 0) return;
+
+                var comps = [];
+                document.querySelectorAll('#dynamicInputs .calc-input').forEach(function(inp) {
+                    var val = parseFloat(inp.value);
+                    if(val > 0) {
+                        var res = appData.resources.find(function(r){ return r.id === inp.getAttribute('data-id') });
+                        if(res) comps.push(val + ' ' + res.name);
+                    }
+                });
+                if(document.getElementById('cb_noads').checked) comps.push("No Ads");
+
+                var profitRatio = (base - price) / price;
+                var item = {
+                    id: Date.now(),
+                    name: document.getElementById('offerName').value || 'Offer #' + (appData.history.length + 1),
+                    price: price,
+                    base: base,
+                    comp: comps.join(', '),
+                    roi: profitRatio * 100,
+                    disc: (1-(price/base))*100,
+                    multi: Math.max(1, Math.round(profitRatio))
+                };
+                appData.history.unshift(item);
+                safeSave();
+                renderHistory();
+            }
+
+            function renderHistory() {
+                var tbody = document.getElementById('historyBody');
+                tbody.innerHTML = '';
+                appData.history.forEach(function(h, idx) {
+                    var cls = 'text-ok';
+                    if(h.roi < 0) cls = 'text-bad';
+                    if(h.roi >= 100) cls = 'text-good';
+                    if(h.roi >= 250) cls = 'text-epic';
+                    if(h.roi >= 500) cls = 'text-legendary';
+
+                    var tr = document.createElement('tr');
+                    tr.innerHTML = 
+                        '<td><strong>' + escapeHtml(h.name) + '</strong></td>' +
+                        '<td>$' + h.price.toFixed(2) + '</td>' +
+                        '<td style="font-size:0.85em; color:#ccc;">' + escapeHtml(h.comp) + '</td>' +
+                        '<td>$' + h.base.toFixed(2) + '</td>' +
+                        '<td>' + Math.max(0, h.disc).toFixed(0) + '%</td>' +
+                        '<td class="' + cls + '" style="font-weight:bold">' + Math.max(0, h.roi).toFixed(0) + '%</td>' +
+                        '<td>' + h.multi + 'x</td>' +
+                        '<td><button class="btn-danger btn-icon btn-del-hist">×</button></td>';
+                    
+                    tr.querySelector('.btn-del-hist').addEventListener('click', function() { delHistory(idx); });
+                    tbody.appendChild(tr);
+                });
+            }
+
+            function delHistory(idx) {
+                if(confirm("Удалить?")) {
+                    appData.history.splice(idx, 1);
+                    safeSave();
+                    renderHistory();
+                }
+            }
+            
+            function clearHistory() {
+                if(confirm("Очистить историю?")) {
+                    appData.history = [];
+                    safeSave();
+                    renderHistory();
+                }
+            }
+
+            // --- SETTINGS ---
+            function openResourceSettings() {
+                var list = document.getElementById('resourceListEditor');
+                list.innerHTML = '';
+                appData.resources.forEach(function(res, idx) {
+                    var div = document.createElement('div');
+                    div.className = 'checklist-item';
+                    div.innerHTML = 
+                        '<div style="flex-grow:1">' +
+                            '<input type="text" class="edit-name" value="' + escapeHtml(res.name) + '" style="width:110px; margin-right:5px;">' +
+                            '<input type="number" class="edit-price" value="' + res.price + '" step="0.0001" style="width:120px;">' +
+                        '</div>' +
+                        (!res.isSpecial ? '<button class="btn-danger btn-icon btn-del-res">✖</button>' : '');
+                    
+                    div.querySelector('.edit-name').addEventListener('change', function(e) { updateResVal(idx, 'name', e.target.value); });
+                    div.querySelector('.edit-price').addEventListener('change', function(e) { updateResVal(idx, 'price', e.target.value); });
+                    var delBtn = div.querySelector('.btn-del-res');
+                    if(delBtn) delBtn.addEventListener('click', function() { delRes(idx); });
+
+                    list.appendChild(div);
+                });
+                document.getElementById('modalResources').classList.add('open');
+            }
+
+            function updateResVal(idx, field, val) {
+                if (field === 'price') val = parseFloat(val);
+                appData.resources[idx][field] = val;
+                safeSave();
+                updateNoAdsLabel();
+                renderInputs();
+                calculate();
+            }
+
+            function addNewResource() {
+                var name = document.getElementById('newResName').value;
+                var price = parseFloat(document.getElementById('newResPrice').value);
+                if(name && !isNaN(price)) {
+                    var id = 'usr_' + Date.now();
+                    appData.resources.push({ id: id, name: name, price: price });
+                    appData.tabConfig['custom'].push(id);
+                    safeSave();
+                    openResourceSettings();
+                    renderInputs();
+                    document.getElementById('newResName').value = '';
+                }
+            }
+
+            function delRes(idx) {
+                if(confirm("Удалить?")) {
+                    var id = appData.resources[idx].id;
+                    appData.resources.splice(idx, 1);
+                    for(var tab in appData.tabConfig) {
+                        appData.tabConfig[tab] = appData.tabConfig[tab].filter(function(x) { return x !== id });
+                    }
+                    safeSave();
+                    openResourceSettings();
+                    renderInputs();
+                    calculate();
+                }
+            }
+
+            function openTabConfig() {
+                var list = document.getElementById('tabFieldList');
+                list.innerHTML = '';
+                var currentActive = appData.tabConfig[appData.currentTab] || [];
+                
+                appData.resources.forEach(function(res) {
+                    if(res.isSpecial) return; 
+                    var isChecked = currentActive.includes(res.id) ? 'checked' : '';
+                    var div = document.createElement('div');
+                    div.className = 'checklist-item';
+                    div.innerHTML = '<span>' + escapeHtml(res.name) + '</span>' +
+                        '<input type="checkbox" class="cfg-cb" value="' + res.id + '" ' + isChecked + ' style="width:20px; height:20px;">';
+                    list.appendChild(div);
+                });
+                document.getElementById('modalTabConfig').classList.add('open');
+            }
+
+            function saveTabConfig() {
+                var checkboxes = document.querySelectorAll('.cfg-cb');
+                var newConfig = [];
+                checkboxes.forEach(function(cb) { if(cb.checked) newConfig.push(cb.value); });
+                appData.tabConfig[appData.currentTab] = newConfig;
+                safeSave();
+                closeModal('modalTabConfig');
+                renderInputs();
+                calculate();
+            }
+
+            function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+            
+            function resetDefaults() {
+                if(confirm("Сбросить настройки?")) {
+                    appData.resources = JSON.parse(JSON.stringify(defaultResources));
+                    appData.tabConfig = JSON.parse(JSON.stringify(defaultTabConfig));
+                    safeSave();
+                    location.reload();
+                }
+            }
+
+            // --- UTILS ---
+            function escapeHtml(text) {
+                if (!text) return text;
+                return text.replace(/[&<>"']/g, function(m) {
+                    var map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'};
+                    return map[m];
+                });
+            }
+            
+            function updateNoAdsLabel() {
+                var res = appData.resources.find(function(r){ return r.id === 'noads' });
+                if(res) document.getElementById('lbl_noads_price').innerText = res.price;
+            }
+
+            function exportData() {
+                var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData));
+                var node = document.createElement('a');
+                node.setAttribute("href", dataStr);
+                node.setAttribute("download", "gemini_data.json");
+                document.body.appendChild(node);
+                node.click();
+                node.remove();
+            }
+
+            function importData(input) {
+                var file = input.files[0];
+                if (!file) return;
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        appData = JSON.parse(e.target.result);
+                        safeSave();
+                        location.reload();
+                    } catch(err) { alert("Ошибка файла"); }
+                };
+                reader.readAsText(file);
+            }
+
+            // Run
+            init();
+        });
+    </script>
+</body>
+</html>
