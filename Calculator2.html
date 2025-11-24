@@ -710,6 +710,7 @@
                         appData = JSON.parse(saved);
                         if(!appData.resources) appData.resources = JSON.parse(JSON.stringify(defaultResources));
                         if(!appData.calcMode) appData.calcMode = 'normal'; // Default to normal mode
+                        if(!appData.chainSlots) appData.chainSlots = []; // Default to empty chain
                     }
                 } catch(e) {}
             }
