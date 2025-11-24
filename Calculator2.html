@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini Offer Calculator v7.5 - Chain Offers</title>
+    <title>Gemini Offer Calculator v7.6 - Chain Offers</title>
     <style>
         :root {
             --primary: #6200ea;
@@ -360,21 +360,25 @@
         }
         .btn-delete-slot {
             position: absolute;
-            top: 15px;
-            right: 15px;
+            top: 8px;
+            right: 8px;
             background: var(--danger);
             color: white;
             border: none;
-            width: 24px;
-            height: 24px;
+            width: 22px;
+            height: 22px;
             border-radius: 50%;
             cursor: pointer;
-            font-size: 14px;
-            line-height: 1;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
             transition: 0.2s;
         }
         .btn-delete-slot:hover {
-            transform: scale(1.1);
+            transform: scale(1.15);
+            background: #d32f2f;
         }
         .chain-result-card {
             background: var(--surface);
@@ -416,7 +420,7 @@
             <a id="btnImportTrigger">📂 Импорт</a>
             <input type="file" id="importFile" style="display:none">
         </div>
-        <div>v7.5 Chain Offers</div>
+        <div>v7.6 Chain Offers</div>
     </div>
 
     <!-- Tabs (No Onclick Here!) -->
