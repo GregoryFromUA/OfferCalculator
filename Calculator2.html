@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini Offer Calculator v7.6 - Chain Offers</title>
+    <title>Offer Calculator v.1.1</title>
     <style>
         :root {
             --primary: #6200ea;
@@ -110,6 +110,29 @@
             text-align: center;
         }
         .tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+        /* Tab-specific colors */
+        #tab_pack.active { background: #2196F3; border-color: #2196F3; }
+        #tab_chest.active { background: #FFB300; border-color: #FFB300; }
+        #tab_blitz.active { background: #FF5722; border-color: #FF5722; }
+        #tab_chain.active { background: #6200ea; border-color: #6200ea; }
+        #tab_custom.active { background: #4CAF50; border-color: #4CAF50; }
+
+        /* Tab-specific active element colors */
+        body[data-current-tab="pack"] .mode-toggle button.active,
+        body[data-current-tab="pack"] .btn-primary { background: #2196F3; }
+
+        body[data-current-tab="chest"] .mode-toggle button.active,
+        body[data-current-tab="chest"] .btn-primary { background: #FFB300; }
+
+        body[data-current-tab="blitz"] .mode-toggle button.active,
+        body[data-current-tab="blitz"] .btn-primary { background: #FF5722; }
+
+        body[data-current-tab="chain"] .slot-type-toggle button.active,
+        body[data-current-tab="chain"] .btn-primary { background: #6200ea; }
+
+        body[data-current-tab="custom"] .mode-toggle button.active,
+        body[data-current-tab="custom"] .btn-primary { background: #4CAF50; }
 
         /* Inputs */
         .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
@@ -261,7 +284,7 @@
         }
         .progress-current {
             font-weight: bold;
-            color: var(--primary);
+            color: white;
         }
         .progress-remaining {
             color: var(--warning);
@@ -296,6 +319,7 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
+            padding-right: 35px;
         }
         .slot-type-toggle {
             display: flex;
@@ -356,7 +380,7 @@
         }
         .slot-metric-value {
             font-weight: bold;
-            color: var(--primary);
+            color: white;
         }
         .btn-delete-slot {
             position: absolute;
@@ -367,7 +391,7 @@
             border: none;
             width: 22px;
             height: 22px;
-            border-radius: 50%;
+            border-radius: 4px;
             cursor: pointer;
             font-size: 16px;
             display: flex;
@@ -406,7 +430,7 @@
         .chain-summary-value {
             font-size: 1.8em;
             font-weight: bold;
-            color: var(--primary);
+            color: white;
         }
     </style>
 </head>
@@ -420,16 +444,16 @@
             <a id="btnImportTrigger">📂 Импорт</a>
             <input type="file" id="importFile" style="display:none">
         </div>
-        <div>v7.6 Chain Offers</div>
+        <div>Offer Calculator v.1.1</div>
     </div>
 
     <!-- Tabs (No Onclick Here!) -->
     <div class="tabs" id="tabsContainer">
-        <div class="tab-btn active" data-tab="pack" id="tab_pack">Pack</div>
-        <div class="tab-btn" data-tab="chest" id="tab_chest">Chests</div>
-        <div class="tab-btn" data-tab="blitz" id="tab_blitz">Blitz</div>
+        <div class="tab-btn active" data-tab="pack" id="tab_pack">📦 Packs</div>
+        <div class="tab-btn" data-tab="chest" id="tab_chest">🎁 Chests</div>
+        <div class="tab-btn" data-tab="blitz" id="tab_blitz">⚡ Blitz</div>
         <div class="tab-btn" data-tab="chain" id="tab_chain">⛓ Chain</div>
-        <div class="tab-btn" data-tab="custom" id="tab_custom">Custom (All)</div>
+        <div class="tab-btn" data-tab="custom" id="tab_custom">⚙️ Custom</div>
     </div>
 
     <div class="main-wrapper" id="mainWrapper">
@@ -748,6 +772,10 @@
                 document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
                 var activeBtn = document.getElementById('tab_' + tabName);
                 if(activeBtn) activeBtn.classList.add('active');
+
+                // Set data attribute for tab-specific styling
+                document.body.setAttribute('data-current-tab', tabName);
+
                 safeSave();
 
                 // Check if Chain tab
