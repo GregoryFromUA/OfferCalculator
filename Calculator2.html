@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini Offer Calculator v7.2 - Chain Offers</title>
+    <title>Gemini Offer Calculator v7.3 - Chain Offers</title>
     <style>
         :root {
             --primary: #6200ea;
@@ -416,7 +416,7 @@
             <a id="btnImportTrigger">📂 Импорт</a>
             <input type="file" id="importFile" style="display:none">
         </div>
-        <div>v7.2 Chain Offers</div>
+        <div>v7.3 Chain Offers</div>
     </div>
 
     <!-- Tabs (No Onclick Here!) -->
@@ -654,14 +654,19 @@
                 document.getElementById('btnImportTrigger').addEventListener('click', function() { document.getElementById('importFile').click(); });
                 document.getElementById('importFile').addEventListener('change', function() { importData(this); });
 
-                // Mode Toggle
-                document.getElementById('modeNormal').addEventListener('click', function() { setCalcMode('normal'); });
-                document.getElementById('modeReverse').addEventListener('click', function() { setCalcMode('reverse'); });
+                // Mode Toggle (only for normal tabs)
+                var modeNormal = document.getElementById('modeNormal');
+                var modeReverse = document.getElementById('modeReverse');
+                if(modeNormal) modeNormal.addEventListener('click', function() { setCalcMode('normal'); });
+                if(modeReverse) modeReverse.addEventListener('click', function() { setCalcMode('reverse'); });
 
-                // Reverse Mode Inputs
-                document.getElementById('targetMulti').addEventListener('input', onTargetMultiChange);
-                document.getElementById('targetROI').addEventListener('input', onTargetROIChange);
-                document.getElementById('targetDiscount').addEventListener('input', onTargetDiscountChange);
+                // Reverse Mode Inputs (only for normal tabs)
+                var targetMulti = document.getElementById('targetMulti');
+                var targetROI = document.getElementById('targetROI');
+                var targetDiscount = document.getElementById('targetDiscount');
+                if(targetMulti) targetMulti.addEventListener('input', onTargetMultiChange);
+                if(targetROI) targetROI.addEventListener('input', onTargetROIChange);
+                if(targetDiscount) targetDiscount.addEventListener('input', onTargetDiscountChange);
 
                 // Tabs
                 document.querySelectorAll('.tab-btn').forEach(function(btn) {
@@ -671,24 +676,36 @@
                     });
                 });
 
-                // Config Buttons
-                document.getElementById('btnOpenTabConfig').addEventListener('click', openTabConfig);
-                document.getElementById('cb_noads').addEventListener('change', calculate);
-                document.getElementById('offerPrice').addEventListener('input', calculate);
+                // Config Buttons (only for normal tabs)
+                var btnOpenTabConfig = document.getElementById('btnOpenTabConfig');
+                var cb_noads = document.getElementById('cb_noads');
+                var offerPrice = document.getElementById('offerPrice');
+                if(btnOpenTabConfig) btnOpenTabConfig.addEventListener('click', openTabConfig);
+                if(cb_noads) cb_noads.addEventListener('change', calculate);
+                if(offerPrice) offerPrice.addEventListener('input', calculate);
 
-                // Price Presets
-                document.getElementById('pricePresetsContainer').addEventListener('click', function(e) {
-                    if(e.target.classList.contains('price-tag')) {
-                        var val = e.target.getAttribute('data-val');
-                        document.getElementById('offerPrice').value = val;
-                        calculate();
-                    }
-                });
+                // Price Presets (only for normal tabs)
+                var pricePresetsContainer = document.getElementById('pricePresetsContainer');
+                if(pricePresetsContainer) {
+                    pricePresetsContainer.addEventListener('click', function(e) {
+                        if(e.target.classList.contains('price-tag')) {
+                            var val = e.target.getAttribute('data-val');
+                            var offerPriceInput = document.getElementById('offerPrice');
+                            if(offerPriceInput) {
+                                offerPriceInput.value = val;
+                                calculate();
+                            }
+                        }
+                    });
+                }
 
-                // Result & History
-                document.getElementById('btnCopyResult').addEventListener('click', copyResultToClipboard);
-                document.getElementById('btnAddToHistory').addEventListener('click', addToHistory);
-                document.getElementById('btnClearHistory').addEventListener('click', clearHistory);
+                // Result & History (only for normal tabs)
+                var btnCopyResult = document.getElementById('btnCopyResult');
+                var btnAddToHistory = document.getElementById('btnAddToHistory');
+                var btnClearHistory = document.getElementById('btnClearHistory');
+                if(btnCopyResult) btnCopyResult.addEventListener('click', copyResultToClipboard);
+                if(btnAddToHistory) btnAddToHistory.addEventListener('click', addToHistory);
+                if(btnClearHistory) btnClearHistory.addEventListener('click', clearHistory);
 
                 // Modals
                 document.getElementById('btnCloseResModal').addEventListener('click', function() { closeModal('modalResources'); });
