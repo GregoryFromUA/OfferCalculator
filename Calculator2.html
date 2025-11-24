@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini Offer Calculator v7.0 - Reverse Mode</title>
+    <title>Gemini Offer Calculator v7.1 - Chain Offers</title>
     <style>
         :root {
             --primary: #6200ea;
@@ -266,6 +266,144 @@
         .progress-remaining {
             color: var(--warning);
         }
+
+        /* Chain Offer Styles */
+        .chain-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .slot-card {
+            background: var(--surface-2);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            padding: 15px;
+            position: relative;
+            transition: 0.2s;
+        }
+        .slot-card:hover {
+            border-color: var(--primary);
+        }
+        .slot-card.free-slot {
+            border-left: 4px solid var(--success);
+        }
+        .slot-card.paid-slot {
+            border-left: 4px solid var(--warning);
+        }
+        .slot-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .slot-type-toggle {
+            display: flex;
+            gap: 5px;
+            background: var(--surface);
+            padding: 3px;
+            border-radius: 6px;
+        }
+        .slot-type-toggle button {
+            padding: 6px 12px;
+            background: transparent;
+            color: var(--text-sec);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: 0.2s;
+        }
+        .slot-type-toggle button.active {
+            background: var(--primary);
+            color: white;
+        }
+        .slot-items {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .slot-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .slot-item select, .slot-item input {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        .slot-metrics {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            padding: 10px;
+            background: var(--surface);
+            border-radius: 6px;
+            font-size: 0.85em;
+        }
+        .slot-metric {
+            text-align: center;
+        }
+        .slot-metric-label {
+            color: var(--text-sec);
+            font-size: 0.8em;
+            margin-bottom: 3px;
+        }
+        .slot-metric-value {
+            font-weight: bold;
+            color: var(--primary);
+        }
+        .btn-delete-slot {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: var(--danger);
+            color: white;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+            transition: 0.2s;
+        }
+        .btn-delete-slot:hover {
+            transform: scale(1.1);
+        }
+        .chain-result-card {
+            background: var(--surface);
+            padding: 20px;
+            border-radius: 12px;
+            border: 2px solid var(--primary);
+        }
+        .chain-summary {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .chain-summary-item {
+            padding: 15px;
+            background: var(--surface-2);
+            border-radius: 8px;
+            text-align: center;
+        }
+        .chain-summary-label {
+            color: var(--text-sec);
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+        .chain-summary-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: var(--primary);
+        }
     </style>
 </head>
 <body>
@@ -278,7 +416,7 @@
             <a id="btnImportTrigger">📂 Импорт</a>
             <input type="file" id="importFile" style="display:none">
         </div>
-        <div>v7.0 Reverse Mode</div>
+        <div>v7.1 Chain Offers</div>
     </div>
 
     <!-- Tabs (No Onclick Here!) -->
@@ -286,10 +424,11 @@
         <div class="tab-btn active" data-tab="pack" id="tab_pack">Pack</div>
         <div class="tab-btn" data-tab="chest" id="tab_chest">Chests</div>
         <div class="tab-btn" data-tab="blitz" id="tab_blitz">Blitz</div>
+        <div class="tab-btn" data-tab="chain" id="tab_chain">⛓ Chain</div>
         <div class="tab-btn" data-tab="custom" id="tab_custom">Custom (All)</div>
     </div>
 
-    <div class="main-wrapper">
+    <div class="main-wrapper" id="mainWrapper">
         <!-- Left: Config -->
         <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
@@ -480,6 +619,7 @@
                 'pack': ['gem', 'skip'],
                 'chest': ['s_chest', 'b_chest', 'skip'],
                 'blitz': ['tnt', 'nitro'],
+                'chain': [], // Chain tab uses different UI
                 'custom': ['gem', 'skip', 'tnt', 'nitro', 's_chest', 'b_chest']
             };
 
@@ -488,7 +628,8 @@
                 tabConfig: JSON.parse(JSON.stringify(defaultTabConfig)),
                 history: [],
                 currentTab: 'pack',
-                calcMode: 'normal' // 'normal' or 'reverse'
+                calcMode: 'normal', // 'normal' or 'reverse'
+                chainSlots: [] // Array of slot objects for chain tab
             };
 
             // --- INITIALIZATION ---
@@ -580,8 +721,15 @@
                 var activeBtn = document.getElementById('tab_' + tabName);
                 if(activeBtn) activeBtn.classList.add('active');
                 safeSave();
-                renderInputs();
-                calculate();
+
+                // Check if Chain tab
+                if(tabName === 'chain') {
+                    renderChainUI();
+                } else {
+                    renderNormalUI();
+                    renderInputs();
+                    calculate();
+                }
             }
 
             function renderInputs() {
@@ -659,6 +807,339 @@
                 if(appData.calcMode === 'reverse') {
                     updateReverseMode();
                 }
+            }
+
+            // --- CHAIN MODE ---
+            function renderNormalUI() {
+                var wrapper = document.getElementById('mainWrapper');
+                // Show normal config/result cards (they're already in HTML)
+                var cards = wrapper.querySelectorAll('.card');
+                cards.forEach(function(card) { card.style.display = ''; });
+            }
+
+            function renderChainUI() {
+                var wrapper = document.getElementById('mainWrapper');
+
+                // Build Chain UI
+                wrapper.innerHTML = '';
+
+                // Left column: Slots list
+                var leftCard = document.createElement('div');
+                leftCard.className = 'card';
+                leftCard.style.gridColumn = '1';
+                leftCard.innerHTML = '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">' +
+                    '<h3>⛓ Chain Slots</h3>' +
+                    '<button class="btn-primary btn-icon" id="btnAddSlot">+ Add Slot</button>' +
+                    '</div>' +
+                    '<div id="chainSlotsContainer" class="chain-container"></div>';
+
+                // Right column: Results
+                var rightCard = document.createElement('div');
+                rightCard.className = 'card chain-result-card';
+                rightCard.innerHTML = '<h3 style="text-align:center; margin-bottom:20px;">Chain Summary</h3>' +
+                    '<div class="chain-summary">' +
+                    '<div class="chain-summary-item"><div class="chain-summary-label">Total Slots</div><div class="chain-summary-value" id="chainTotalSlots">0</div></div>' +
+                    '<div class="chain-summary-item"><div class="chain-summary-label">Total Spent</div><div class="chain-summary-value" id="chainTotalSpent">$0.00</div></div>' +
+                    '<div class="chain-summary-item"><div class="chain-summary-label">Cumulative Value</div><div class="chain-summary-value" id="chainCumulativeValue">$0.00</div></div>' +
+                    '<div class="chain-summary-item"><div class="chain-summary-label">Average ROI</div><div class="chain-summary-value" id="chainAvgROI">0%</div></div>' +
+                    '</div>' +
+                    '<button class="btn-primary" style="margin-top:20px; width:100%;" id="btnCopyChain">📋 Copy Chain</button>';
+
+                wrapper.appendChild(leftCard);
+                wrapper.appendChild(rightCard);
+
+                // Bind events
+                document.getElementById('btnAddSlot').addEventListener('click', addChainSlot);
+                document.getElementById('btnCopyChain').addEventListener('click', copyChainToClipboard);
+
+                // Render existing slots
+                renderChainSlots();
+            }
+
+            function renderChainSlots() {
+                var container = document.getElementById('chainSlotsContainer');
+                if(!container) return;
+
+                container.innerHTML = '';
+
+                if(appData.chainSlots.length === 0) {
+                    container.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-sec);">No slots yet. Click "Add Slot" to start building your chain.</div>';
+                    updateChainResults();
+                    return;
+                }
+
+                appData.chainSlots.forEach(function(slot, index) {
+                    var slotCard = createSlotCard(slot, index);
+                    container.appendChild(slotCard);
+                });
+
+                updateChainResults();
+            }
+
+            function createSlotCard(slot, index) {
+                var card = document.createElement('div');
+                card.className = 'slot-card ' + (slot.type === 'free' ? 'free-slot' : 'paid-slot');
+
+                var html = '<div class="slot-header">' +
+                    '<div><strong>Slot ' + (index + 1) + '</strong></div>' +
+                    '<div class="slot-type-toggle">' +
+                    '<button class="slot-type-btn ' + (slot.type === 'free' ? 'active' : '') + '" data-type="free" data-index="' + index + '">Free</button>' +
+                    '<button class="slot-type-btn ' + (slot.type === 'paid' ? 'active' : '') + '" data-type="paid" data-index="' + index + '">Paid</button>' +
+                    '</div>' +
+                    '</div>';
+
+                // Price for paid slots
+                if(slot.type === 'paid') {
+                    html += '<div style="margin-bottom:15px;"><label style="display:block; margin-bottom:5px; color:var(--text-sec); font-size:0.9em;">Slot Price ($)</label>' +
+                        '<input type="number" class="slot-price-input" data-index="' + index + '" value="' + (slot.price || 0) + '" step="0.01" min="0" style="width:100%;"></div>';
+                }
+
+                // Items (up to 3)
+                html += '<div class="slot-items">';
+                for(var i = 0; i < 3; i++) {
+                    var item = slot.items[i] || { resourceId: '', count: 0 };
+                    html += '<div class="slot-item">' +
+                        '<select class="slot-res-select" data-index="' + index + '" data-item="' + i + '">' +
+                        '<option value="">---</option>';
+
+                    appData.resources.forEach(function(res) {
+                        if(res.isSpecial) return;
+                        var selected = item.resourceId === res.id ? 'selected' : '';
+                        html += '<option value="' + res.id + '" ' + selected + '>' + escapeHtml(res.name) + '</option>';
+                    });
+
+                    html += '</select>' +
+                        '<input type="number" class="slot-item-count" data-index="' + index + '" data-item="' + i + '" value="' + item.count + '" min="0" placeholder="Count">' +
+                        '</div>';
+                }
+                html += '</div>';
+
+                // Metrics
+                var metrics = calculateSlotMetrics(slot, index);
+                html += '<div class="slot-metrics">' +
+                    '<div class="slot-metric"><div class="slot-metric-label">Base Value</div><div class="slot-metric-value">$' + metrics.baseValue.toFixed(2) + '</div></div>';
+
+                if(slot.type === 'paid') {
+                    html += '<div class="slot-metric"><div class="slot-metric-label">Discount</div><div class="slot-metric-value">' + metrics.discount.toFixed(0) + '%</div></div>';
+                } else {
+                    html += '<div class="slot-metric"><div class="slot-metric-label">Free Item %</div><div class="slot-metric-value">' + metrics.freeItemPercent.toFixed(1) + '%</div></div>';
+                }
+
+                html += '<div class="slot-metric"><div class="slot-metric-label">Cumul. Value</div><div class="slot-metric-value">$' + metrics.cumulativeValue.toFixed(2) + '</div></div>' +
+                    '<div class="slot-metric"><div class="slot-metric-label">Total Spent</div><div class="slot-metric-value">$' + metrics.totalSpent.toFixed(2) + '</div></div>' +
+                    '</div>';
+
+                // Delete button
+                html += '<button class="btn-delete-slot" data-index="' + index + '">×</button>';
+
+                card.innerHTML = html;
+
+                // Bind events
+                card.querySelectorAll('.slot-type-btn').forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        changeSlotType(parseInt(this.getAttribute('data-index')), this.getAttribute('data-type'));
+                    });
+                });
+
+                var priceInput = card.querySelector('.slot-price-input');
+                if(priceInput) {
+                    priceInput.addEventListener('input', function() {
+                        updateSlotPrice(parseInt(this.getAttribute('data-index')), parseFloat(this.value) || 0);
+                    });
+                }
+
+                card.querySelectorAll('.slot-res-select').forEach(function(sel) {
+                    sel.addEventListener('change', function() {
+                        updateSlotItem(parseInt(this.getAttribute('data-index')), parseInt(this.getAttribute('data-item')), 'resourceId', this.value);
+                    });
+                });
+
+                card.querySelectorAll('.slot-item-count').forEach(function(inp) {
+                    inp.addEventListener('input', function() {
+                        updateSlotItem(parseInt(this.getAttribute('data-index')), parseInt(this.getAttribute('data-item')), 'count', parseFloat(this.value) || 0);
+                    });
+                });
+
+                card.querySelector('.btn-delete-slot').addEventListener('click', function() {
+                    deleteChainSlot(parseInt(this.getAttribute('data-index')));
+                });
+
+                return card;
+            }
+
+            function addChainSlot() {
+                var newSlot = {
+                    type: 'free',
+                    price: 0,
+                    items: [
+                        { resourceId: '', count: 0 },
+                        { resourceId: '', count: 0 },
+                        { resourceId: '', count: 0 }
+                    ]
+                };
+                appData.chainSlots.push(newSlot);
+                safeSave();
+                renderChainSlots();
+            }
+
+            function deleteChainSlot(index) {
+                if(confirm('Delete this slot?')) {
+                    appData.chainSlots.splice(index, 1);
+                    safeSave();
+                    renderChainSlots();
+                }
+            }
+
+            function changeSlotType(index, type) {
+                appData.chainSlots[index].type = type;
+                if(type === 'free') {
+                    appData.chainSlots[index].price = 0;
+                }
+                safeSave();
+                renderChainSlots();
+            }
+
+            function updateSlotPrice(index, price) {
+                appData.chainSlots[index].price = price;
+                safeSave();
+                renderChainSlots();
+            }
+
+            function updateSlotItem(index, itemIndex, field, value) {
+                appData.chainSlots[index].items[itemIndex][field] = value;
+                safeSave();
+                renderChainSlots();
+            }
+
+            function calculateSlotMetrics(slot, index) {
+                // Calculate base value
+                var baseValue = 0;
+                slot.items.forEach(function(item) {
+                    if(item.resourceId) {
+                        var res = appData.resources.find(function(r) { return r.id === item.resourceId });
+                        if(res) baseValue += item.count * res.price;
+                    }
+                });
+
+                // Calculate cumulative and total spent up to this slot
+                var cumulativeValue = 0;
+                var totalSpent = 0;
+                for(var i = 0; i <= index; i++) {
+                    var s = appData.chainSlots[i];
+                    s.items.forEach(function(item) {
+                        if(item.resourceId) {
+                            var res = appData.resources.find(function(r) { return r.id === item.resourceId });
+                            if(res) cumulativeValue += item.count * res.price;
+                        }
+                    });
+                    if(s.type === 'paid') {
+                        totalSpent += s.price || 0;
+                    }
+                }
+
+                // Calculate discount for paid slots
+                var discount = 0;
+                if(slot.type === 'paid' && slot.price > 0 && baseValue > 0) {
+                    discount = (1 - (slot.price / baseValue)) * 100;
+                }
+
+                // Calculate free item % for free slots
+                var freeItemPercent = 0;
+                if(slot.type === 'free' && totalSpent > 0) {
+                    freeItemPercent = (baseValue / totalSpent) * 100;
+                }
+
+                return {
+                    baseValue: baseValue,
+                    discount: discount,
+                    freeItemPercent: freeItemPercent,
+                    cumulativeValue: cumulativeValue,
+                    totalSpent: totalSpent
+                };
+            }
+
+            function updateChainResults() {
+                var totalSlots = appData.chainSlots.length;
+                var totalSpent = 0;
+                var cumulativeValue = 0;
+
+                appData.chainSlots.forEach(function(slot) {
+                    slot.items.forEach(function(item) {
+                        if(item.resourceId) {
+                            var res = appData.resources.find(function(r) { return r.id === item.resourceId });
+                            if(res) cumulativeValue += item.count * res.price;
+                        }
+                    });
+                    if(slot.type === 'paid') {
+                        totalSpent += slot.price || 0;
+                    }
+                });
+
+                var avgROI = 0;
+                if(totalSpent > 0) {
+                    avgROI = ((cumulativeValue - totalSpent) / totalSpent) * 100;
+                }
+
+                document.getElementById('chainTotalSlots').innerText = totalSlots;
+                document.getElementById('chainTotalSpent').innerText = '$' + totalSpent.toFixed(2);
+                document.getElementById('chainCumulativeValue').innerText = '$' + cumulativeValue.toFixed(2);
+                document.getElementById('chainAvgROI').innerText = avgROI.toFixed(0) + '%';
+            }
+
+            function copyChainToClipboard() {
+                var text = 'Chain Offer (' + appData.chainSlots.length + ' slots):\n';
+
+                appData.chainSlots.forEach(function(slot, index) {
+                    var metrics = calculateSlotMetrics(slot, index);
+                    var items = [];
+                    slot.items.forEach(function(item) {
+                        if(item.resourceId && item.count > 0) {
+                            var res = appData.resources.find(function(r) { return r.id === item.resourceId });
+                            if(res) items.push(item.count + ' ' + res.name);
+                        }
+                    });
+
+                    var slotText = '- Slot ' + (index + 1) + ' (' + (slot.type === 'free' ? 'Free' : 'Paid $' + slot.price.toFixed(2)) + '): ' +
+                        (items.length > 0 ? items.join(', ') : 'empty') +
+                        ' | Value: $' + metrics.baseValue.toFixed(2);
+
+                    if(slot.type === 'paid') {
+                        slotText += ' (' + metrics.discount.toFixed(0) + '% OFF)';
+                    }
+
+                    text += slotText + '\n';
+                });
+
+                var totalSpent = 0;
+                var cumulativeValue = 0;
+                appData.chainSlots.forEach(function(slot) {
+                    var metrics = calculateSlotMetrics(slot, appData.chainSlots.indexOf(slot));
+                    if(slot.type === 'paid') totalSpent += slot.price || 0;
+                });
+                appData.chainSlots.forEach(function(slot) {
+                    slot.items.forEach(function(item) {
+                        if(item.resourceId) {
+                            var res = appData.resources.find(function(r) { return r.id === item.resourceId });
+                            if(res) cumulativeValue += item.count * res.price;
+                        }
+                    });
+                });
+
+                var avgROI = totalSpent > 0 ? ((cumulativeValue - totalSpent) / totalSpent) * 100 : 0;
+                text += '\nTotal: $' + totalSpent.toFixed(2) + ' → $' + cumulativeValue.toFixed(2) + ' | Average ROI: ' + avgROI.toFixed(0) + '%';
+
+                navigator.clipboard.writeText(text).then(function() {
+                    var btn = document.getElementById('btnCopyChain');
+                    var originalText = btn.innerHTML;
+                    btn.innerHTML = '✓ Copied!';
+                    btn.style.background = 'var(--success)';
+                    setTimeout(function() {
+                        btn.innerHTML = originalText;
+                        btn.style.background = '';
+                    }, 2000);
+                }).catch(function(err) {
+                    alert('Не удалось скопировать. Попробуйте выделить текст вручную:\n\n' + text);
+                });
             }
 
             // --- REVERSE MODE ---
