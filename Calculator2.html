@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini Offer Calculator v7.1 - Chain Offers</title>
+    <title>Gemini Offer Calculator v7.2 - Chain Offers</title>
     <style>
         :root {
             --primary: #6200ea;
@@ -416,7 +416,7 @@
             <a id="btnImportTrigger">📂 Импорт</a>
             <input type="file" id="importFile" style="display:none">
         </div>
-        <div>v7.1 Chain Offers</div>
+        <div>v7.2 Chain Offers</div>
     </div>
 
     <!-- Tabs (No Onclick Here!) -->
@@ -1504,7 +1504,8 @@
             
             function updateNoAdsLabel() {
                 var res = appData.resources.find(function(r){ return r.id === 'noads' });
-                if(res) document.getElementById('lbl_noads_price').innerText = res.price;
+                var label = document.getElementById('lbl_noads_price');
+                if(res && label) label.innerText = res.price;
             }
 
             function exportData() {
