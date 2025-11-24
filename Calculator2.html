@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini Offer Calculator v7.4 - Chain Offers</title>
+    <title>Gemini Offer Calculator v7.5 - Chain Offers</title>
     <style>
         :root {
             --primary: #6200ea;
@@ -416,7 +416,7 @@
             <a id="btnImportTrigger">📂 Импорт</a>
             <input type="file" id="importFile" style="display:none">
         </div>
-        <div>v7.4 Chain Offers</div>
+        <div>v7.5 Chain Offers</div>
     </div>
 
     <!-- Tabs (No Onclick Here!) -->
@@ -758,6 +758,7 @@
 
             function renderInputs() {
                 var container = document.getElementById('dynamicInputs');
+                if(!container) return; // Skip if on Chain tab or element doesn't exist
                 container.innerHTML = '';
                 var activeFields = appData.tabConfig[appData.currentTab] || [];
                 
