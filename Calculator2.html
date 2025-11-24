@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini Offer Calculator v7.3 - Chain Offers</title>
+    <title>Gemini Offer Calculator v7.4 - Chain Offers</title>
     <style>
         :root {
             --primary: #6200ea;
@@ -416,7 +416,7 @@
             <a id="btnImportTrigger">📂 Импорт</a>
             <input type="file" id="importFile" style="display:none">
         </div>
-        <div>v7.3 Chain Offers</div>
+        <div>v7.4 Chain Offers</div>
     </div>
 
     <!-- Tabs (No Onclick Here!) -->
@@ -632,9 +632,15 @@
                 chainSlots: [] // Array of slot objects for chain tab
             };
 
+            // Store original mainWrapper HTML for restoration
+            var originalMainWrapperHTML = '';
+
             // --- INITIALIZATION ---
-            
+
             function init() {
+                // Save original HTML before any modifications
+                originalMainWrapperHTML = document.getElementById('mainWrapper').innerHTML;
+
                 safeLoad();
                 switchTab(appData.currentTab);
                 updateNoAdsLabel();
@@ -830,9 +836,50 @@
             // --- CHAIN MODE ---
             function renderNormalUI() {
                 var wrapper = document.getElementById('mainWrapper');
-                // Show normal config/result cards (they're already in HTML)
-                var cards = wrapper.querySelectorAll('.card');
-                cards.forEach(function(card) { card.style.display = ''; });
+
+                // Check if normal UI exists, if not restore from saved HTML
+                if(!document.getElementById('dynamicInputs')) {
+                    wrapper.innerHTML = originalMainWrapperHTML;
+
+                    // Re-bind events for normal tab elements after restoration
+                    var btnOpenTabConfig = document.getElementById('btnOpenTabConfig');
+                    var cb_noads = document.getElementById('cb_noads');
+                    var offerPrice = document.getElementById('offerPrice');
+                    if(btnOpenTabConfig) btnOpenTabConfig.addEventListener('click', openTabConfig);
+                    if(cb_noads) cb_noads.addEventListener('change', calculate);
+                    if(offerPrice) offerPrice.addEventListener('input', calculate);
+
+                    var pricePresetsContainer = document.getElementById('pricePresetsContainer');
+                    if(pricePresetsContainer) {
+                        pricePresetsContainer.addEventListener('click', function(e) {
+                            if(e.target.classList.contains('price-tag')) {
+                                var val = e.target.getAttribute('data-val');
+                                var offerPriceInput = document.getElementById('offerPrice');
+                                if(offerPriceInput) {
+                                    offerPriceInput.value = val;
+                                    calculate();
+                                }
+                            }
+                        });
+                    }
+
+                    var btnCopyResult = document.getElementById('btnCopyResult');
+                    var btnAddToHistory = document.getElementById('btnAddToHistory');
+                    if(btnCopyResult) btnCopyResult.addEventListener('click', copyResultToClipboard);
+                    if(btnAddToHistory) btnAddToHistory.addEventListener('click', addToHistory);
+
+                    var modeNormal = document.getElementById('modeNormal');
+                    var modeReverse = document.getElementById('modeReverse');
+                    if(modeNormal) modeNormal.addEventListener('click', function() { setCalcMode('normal'); });
+                    if(modeReverse) modeReverse.addEventListener('click', function() { setCalcMode('reverse'); });
+
+                    var targetMulti = document.getElementById('targetMulti');
+                    var targetROI = document.getElementById('targetROI');
+                    var targetDiscount = document.getElementById('targetDiscount');
+                    if(targetMulti) targetMulti.addEventListener('input', onTargetMultiChange);
+                    if(targetROI) targetROI.addEventListener('input', onTargetROIChange);
+                    if(targetDiscount) targetDiscount.addEventListener('input', onTargetDiscountChange);
+                }
             }
 
             function renderChainUI() {
