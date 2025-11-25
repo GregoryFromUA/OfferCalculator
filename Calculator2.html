@@ -645,7 +645,7 @@
 
             var defaultTabConfig = {
                 'pack': ['gem', 'skip'],
-                'chest': ['s_chest', 'b_chest', 'skip'],
+                'chest': ['gem', 'skip'], // Changed to Gems and Skipits for chest calculator
                 'blitz': ['tnt', 'nitro'],
                 'chain': [], // Chain tab uses different UI
                 'custom': ['gem', 'skip', 'tnt', 'nitro', 's_chest', 'b_chest']
@@ -657,7 +657,12 @@
                 history: [],
                 currentTab: 'pack',
                 calcMode: 'normal', // 'normal' or 'reverse'
-                chainSlots: [] // Array of slot objects for chain tab
+                chainSlots: [], // Array of slot objects for chain tab
+                chestConfig: {  // Configuration for chest calculator
+                    name: '',
+                    price: 0.99,
+                    items: []
+                }
             };
 
             // Store original mainWrapper HTML for restoration
@@ -762,6 +767,7 @@
                         if(!appData.resources) appData.resources = JSON.parse(JSON.stringify(defaultResources));
                         if(!appData.calcMode) appData.calcMode = 'normal'; // Default to normal mode
                         if(!appData.chainSlots) appData.chainSlots = []; // Default to empty chain
+                        if(!appData.chestConfig) appData.chestConfig = { name: '', price: 0.99, items: [] }; // Default chest config
                     }
                 } catch(e) {}
             }
@@ -778,13 +784,49 @@
 
                 safeSave();
 
-                // Check if Chain tab
+                // Check if Chain tab or Chest tab
                 if(tabName === 'chain') {
                     renderChainUI();
+                } else if(tabName === 'chest') {
+                    renderChestUI();
                 } else {
                     renderNormalUI();
+                    updateTabLabels(tabName);
                     renderInputs();
                     calculate();
+                }
+            }
+
+            function updateTabLabels(tabName) {
+                var tabTitle = document.getElementById('tabTitle');
+                var offerNameLabel = document.querySelector('label[for="offerName"]');
+                if(!offerNameLabel) {
+                    offerNameLabel = document.querySelector('.input-group label');
+                }
+                var priceLabel = document.querySelector('label[style*="ЦЕНА ПАКА"]');
+                if(!priceLabel) {
+                    var labels = document.querySelectorAll('label');
+                    for(var i = 0; i < labels.length; i++) {
+                        if(labels[i].textContent.includes('ЦЕНА ПАКА') || labels[i].textContent.includes('ЦЕНА СУНДУКА')) {
+                            priceLabel = labels[i];
+                            break;
+                        }
+                    }
+                }
+                var noAdsContainer = document.getElementById('cb_noads');
+                if(noAdsContainer) noAdsContainer = noAdsContainer.parentElement.parentElement;
+
+                // Update texts based on tab
+                if(tabName === 'chest') {
+                    if(tabTitle) tabTitle.textContent = 'Chest Config';
+                    if(offerNameLabel) offerNameLabel.textContent = 'Название сундука';
+                    if(priceLabel) priceLabel.textContent = 'ЦЕНА СУНДУКА ($)';
+                    if(noAdsContainer) noAdsContainer.style.display = 'none';
+                } else {
+                    if(tabTitle) tabTitle.textContent = 'Pack Config';
+                    if(offerNameLabel) offerNameLabel.textContent = 'Название Офера';
+                    if(priceLabel) priceLabel.textContent = 'ЦЕНА ПАКА ($)';
+                    if(noAdsContainer) noAdsContainer.style.display = 'block';
                 }
             }
 
@@ -1238,6 +1280,666 @@
                 }).catch(function(err) {
                     alert('Не удалось скопировать. Попробуйте выделить текст вручную:\n\n' + text);
                 });
+            }
+
+            // --- CHEST CALCULATOR ---
+            function renderChestUI() {
+                var wrapper = document.getElementById('mainWrapper');
+                wrapper.innerHTML = '';
+
+                // Left column: Chest configuration
+                var leftCard = document.createElement('div');
+                leftCard.className = 'card';
+                leftCard.style.gridColumn = '1';
+                leftCard.innerHTML =
+                    '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">' +
+                    '<h3>🎁 Chest Config</h3>' +
+                    '</div>' +
+
+                    // Mode Toggle
+                    '<div class="mode-toggle">' +
+                    '<button id="chestModeNormal" class="active">📊 Обычный</button>' +
+                    '<button id="chestModeReverse">🎯 Конструктор</button>' +
+                    '</div>' +
+
+                    // Chest Name
+                    '<div class="input-group" style="margin-bottom: 20px;">' +
+                    '<label>Название сундука</label>' +
+                    '<input type="text" id="chestName" placeholder="Название" value="' + escapeHtml(appData.chestConfig.name) + '">' +
+                    '</div>' +
+
+                    // Reverse Mode Section (hidden by default)
+                    '<div class="reverse-section" id="chestReverseSection" style="display:none;">' +
+                    '<label style="font-weight:bold; color:var(--warning); display:block; margin-bottom:10px;">🎯 ЦЕЛЕВЫЕ ПОКАЗАТЕЛИ</label>' +
+                    '<div class="reverse-fields">' +
+                    '<div class="input-group"><label>Multiplier (X)</label><input type="number" id="chestTargetMulti" placeholder="5" min="1" step="1" value="5"></div>' +
+                    '<div class="input-group"><label>ROI %</label><input type="number" id="chestTargetROI" placeholder="400" min="0" step="1" value="400"></div>' +
+                    '<div class="input-group"><label>Discount %</label><input type="number" id="chestTargetDiscount" placeholder="80" min="0" max="99" step="1" value="80"></div>' +
+                    '</div>' +
+                    '<div style="margin-top:10px; padding:10px; background:#1a1a1a; border-radius:6px; text-align:center;">' +
+                    '<div style="font-size:0.85em; color:var(--text-sec);">Требуемая средняя стоимость содержимого:</div>' +
+                    '<div style="font-size:1.8em; font-weight:bold; color:var(--warning); margin-top:5px;" id="chestTargetValue">$0.00</div>' +
+                    '</div>' +
+                    '<div id="chestRecommendation" style="margin-top:10px; padding:10px; background:#1a1a1a; border-radius:6px; font-size:0.9em; color:var(--text-sec);"></div>' +
+                    '</div>' +
+
+                    // Items List
+                    '<div style="margin-top:20px;">' +
+                    '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">' +
+                    '<label style="font-weight:bold;">Предметы в сундуке</label>' +
+                    '<button class="btn-primary btn-icon" id="btnAddChestItem">+ Добавить</button>' +
+                    '</div>' +
+                    '<div id="chestItemsContainer"></div>' +
+                    '</div>' +
+
+                    // Price Section
+                    '<div style="margin-top: 25px; background: #252525; padding: 15px; border-radius: 8px; border: 1px solid var(--border);">' +
+                    '<label style="color: var(--warning); font-weight: bold; display:block; margin-bottom:5px;">ЦЕНА СУНДУКА ($)</label>' +
+                    '<input type="number" id="chestPrice" step="0.5" min="0.49" value="' + appData.chestConfig.price + '" style="font-size: 1.4em; font-weight: bold; color: var(--warning);">' +
+                    '<div class="price-presets" id="chestPricePresets">' +
+                    '<div class="price-tag" data-val="0.99">$0.99</div>' +
+                    '<div class="price-tag" data-val="1.99">$1.99</div>' +
+                    '<div class="price-tag" data-val="2.99">$2.99</div>' +
+                    '<div class="price-tag" data-val="3.99">$3.99</div>' +
+                    '<div class="price-tag" data-val="4.99">$4.99</div>' +
+                    '<div class="price-tag" data-val="7.99">$7.99</div>' +
+                    '<div class="price-tag" data-val="9.99">$9.99</div>' +
+                    '<div class="price-tag" data-val="14.99">$14.99</div>' +
+                    '<div class="price-tag" data-val="19.99">$19.99</div>' +
+                    '<div class="price-tag" data-val="24.99">$24.99</div>' +
+                    '</div>' +
+                    '</div>';
+
+                // Right column: Results and Simulator
+                var rightCard = document.createElement('div');
+                rightCard.className = 'card';
+                rightCard.innerHTML =
+                    '<h3 style="text-align:center; margin-bottom:20px;">📦 Анализ сундука</h3>' +
+                    '<div id="chestResults"></div>' +
+                    '<hr style="margin: 20px 0; border: none; border-top: 1px solid var(--border);">' +
+                    '<h4 style="margin-bottom:15px;">🎲 Симулятор открытия</h4>' +
+                    '<div id="chestSimulator"></div>';
+
+                wrapper.appendChild(leftCard);
+                wrapper.appendChild(rightCard);
+
+                // Bind events
+                document.getElementById('chestModeNormal').addEventListener('click', function() { setChestCalcMode('normal'); });
+                document.getElementById('chestModeReverse').addEventListener('click', function() { setChestCalcMode('reverse'); });
+                document.getElementById('chestName').addEventListener('input', function() {
+                    appData.chestConfig.name = this.value;
+                    safeSave();
+                });
+                document.getElementById('chestPrice').addEventListener('input', calculateChest);
+                document.getElementById('btnAddChestItem').addEventListener('click', addChestItem);
+
+                // Price presets
+                document.getElementById('chestPricePresets').addEventListener('click', function(e) {
+                    if(e.target.classList.contains('price-tag')) {
+                        document.getElementById('chestPrice').value = e.target.getAttribute('data-val');
+                        calculateChest();
+                    }
+                });
+
+                // Reverse mode inputs
+                var chestTargetMulti = document.getElementById('chestTargetMulti');
+                var chestTargetROI = document.getElementById('chestTargetROI');
+                var chestTargetDiscount = document.getElementById('chestTargetDiscount');
+                if(chestTargetMulti) chestTargetMulti.addEventListener('input', onChestTargetMultiChange);
+                if(chestTargetROI) chestTargetROI.addEventListener('input', onChestTargetROIChange);
+                if(chestTargetDiscount) chestTargetDiscount.addEventListener('input', onChestTargetDiscountChange);
+
+                // Render existing items
+                renderChestItems();
+                renderChestSimulator();
+                calculateChest();
+            }
+
+            function renderChestItems() {
+                var container = document.getElementById('chestItemsContainer');
+                if(!container) return;
+
+                if(appData.chestConfig.items.length === 0) {
+                    container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-sec); font-size:0.9em;">Нет предметов. Нажмите "+ Добавить"</div>';
+                    return;
+                }
+
+                container.innerHTML = '';
+                appData.chestConfig.items.forEach(function(item, index) {
+                    var itemCard = createChestItemCard(item, index);
+                    container.appendChild(itemCard);
+                });
+            }
+
+            function createChestItemCard(item, index) {
+                var card = document.createElement('div');
+                card.className = 'slot-card';
+                card.style.marginBottom = '15px';
+                card.style.position = 'relative';
+
+                var html = '<div style="margin-bottom:10px;"><strong>Предмет #' + (index + 1) + '</strong></div>';
+
+                // Resource dropdown
+                html += '<div style="margin-bottom:10px;"><label style="display:block; margin-bottom:5px; color:var(--text-sec); font-size:0.9em;">Ресурс</label>' +
+                    '<select class="chest-item-resource" data-index="' + index + '" style="width:100%; padding:8px; background:var(--surface); border:1px solid var(--border); color:white; border-radius:4px;">' +
+                    '<option value="">-- Выберите ресурс --</option>';
+
+                appData.resources.forEach(function(res) {
+                    if(res.isSpecial) return;
+                    var selected = item.resourceId === res.id ? 'selected' : '';
+                    html += '<option value="' + res.id + '" ' + selected + '>' + escapeHtml(res.name) + '</option>';
+                });
+
+                html += '</select></div>';
+
+                // Random quantity checkbox
+                html += '<div style="margin-bottom:10px;"><label style="display:flex; align-items:center; cursor:pointer; gap:8px;">' +
+                    '<input type="checkbox" class="chest-item-random" data-index="' + index + '" ' + (item.isRandom ? 'checked' : '') + ' style="width:18px; height:18px;">' +
+                    '<span>Случайное количество</span>' +
+                    '</label></div>';
+
+                // Quantity fields
+                if(item.isRandom) {
+                    html += '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">' +
+                        '<div><label style="display:block; margin-bottom:5px; color:var(--text-sec); font-size:0.9em;">Min</label>' +
+                        '<input type="number" class="chest-item-min" data-index="' + index + '" value="' + (item.minQty || 0) + '" min="0" style="width:100%;"></div>' +
+                        '<div><label style="display:block; margin-bottom:5px; color:var(--text-sec); font-size:0.9em;">Max</label>' +
+                        '<input type="number" class="chest-item-max" data-index="' + index + '" value="' + (item.maxQty || 0) + '" min="0" style="width:100%;"></div>' +
+                        '</div>';
+                } else {
+                    html += '<div style="margin-bottom:10px;"><label style="display:block; margin-bottom:5px; color:var(--text-sec); font-size:0.9em;">Количество</label>' +
+                        '<input type="number" class="chest-item-qty" data-index="' + index + '" value="' + (item.minQty || 0) + '" min="0" style="width:100%;"></div>';
+                }
+
+                // Drop chance
+                html += '<div style="margin-bottom:10px;"><label style="display:block; margin-bottom:5px; color:var(--text-sec); font-size:0.9em;">Шанс дропа (%)</label>' +
+                    '<input type="number" class="chest-item-chance" data-index="' + index + '" value="' + (item.dropChance || 0) + '" min="0" max="100" step="1" style="width:100%;"></div>';
+
+                // Rarity
+                html += '<div style="margin-bottom:10px;"><label style="display:block; margin-bottom:5px; color:var(--text-sec); font-size:0.9em;">Редкость (опционально)</label>' +
+                    '<input type="text" class="chest-item-rarity" data-index="' + index + '" value="' + escapeHtml(item.rarity || '') + '" placeholder="Common, Rare, Epic..." style="width:100%;"></div>';
+
+                // Delete button
+                html += '<button class="btn-delete-slot" data-index="' + index + '">×</button>';
+
+                card.innerHTML = html;
+
+                // Bind events
+                card.querySelector('.chest-item-resource').addEventListener('change', function() {
+                    updateChestItem(index, 'resourceId', this.value);
+                });
+                card.querySelector('.chest-item-random').addEventListener('change', function() {
+                    updateChestItem(index, 'isRandom', this.checked);
+                });
+                var minInput = card.querySelector('.chest-item-min');
+                if(minInput) {
+                    minInput.addEventListener('input', function() {
+                        updateChestItem(index, 'minQty', parseFloat(this.value) || 0);
+                    });
+                }
+                var maxInput = card.querySelector('.chest-item-max');
+                if(maxInput) {
+                    maxInput.addEventListener('input', function() {
+                        updateChestItem(index, 'maxQty', parseFloat(this.value) || 0);
+                    });
+                }
+                var qtyInput = card.querySelector('.chest-item-qty');
+                if(qtyInput) {
+                    qtyInput.addEventListener('input', function() {
+                        updateChestItem(index, 'minQty', parseFloat(this.value) || 0);
+                        updateChestItem(index, 'maxQty', parseFloat(this.value) || 0);
+                    });
+                }
+                card.querySelector('.chest-item-chance').addEventListener('input', function() {
+                    updateChestItem(index, 'dropChance', parseFloat(this.value) || 0);
+                });
+                card.querySelector('.chest-item-rarity').addEventListener('input', function() {
+                    updateChestItem(index, 'rarity', this.value);
+                });
+                card.querySelector('.btn-delete-slot').addEventListener('click', function() {
+                    deleteChestItem(index);
+                });
+
+                return card;
+            }
+
+            function addChestItem() {
+                var newItem = {
+                    resourceId: '',
+                    isRandom: false,
+                    minQty: 0,
+                    maxQty: 0,
+                    dropChance: 100,
+                    rarity: ''
+                };
+                appData.chestConfig.items.push(newItem);
+                safeSave();
+                renderChestItems();
+                calculateChest();
+            }
+
+            function deleteChestItem(index) {
+                if(confirm('Удалить этот предмет?')) {
+                    appData.chestConfig.items.splice(index, 1);
+                    safeSave();
+                    renderChestItems();
+                    calculateChest();
+                }
+            }
+
+            function updateChestItem(index, field, value) {
+                appData.chestConfig.items[index][field] = value;
+                safeSave();
+                if(field === 'isRandom') {
+                    renderChestItems(); // Re-render to show/hide min/max fields
+                } else {
+                    calculateChest();
+                }
+            }
+
+            function calculateChest() {
+                var price = parseFloat(document.getElementById('chestPrice').value) || 0;
+                appData.chestConfig.price = price;
+
+                var ev = 0; // Expected Value
+                var totalChance = 0;
+                var itemDetails = [];
+
+                appData.chestConfig.items.forEach(function(item) {
+                    if(!item.resourceId) return;
+
+                    var res = appData.resources.find(function(r) { return r.id === item.resourceId });
+                    if(!res) return;
+
+                    var avgQty = 0;
+                    if(item.isRandom) {
+                        var min = item.minQty || 0;
+                        var max = item.maxQty || 0;
+                        if(min > 0 && max === 0) avgQty = min;
+                        else if(min === 0 && max > 0) avgQty = max;
+                        else avgQty = (min + max) / 2;
+                    } else {
+                        avgQty = item.minQty || 0;
+                    }
+
+                    var dropChance = (item.dropChance || 0) / 100;
+                    var itemValue = res.price * avgQty * dropChance;
+                    ev += itemValue;
+                    totalChance += item.dropChance || 0;
+
+                    itemDetails.push({
+                        name: res.name,
+                        avgQty: avgQty,
+                        dropChance: item.dropChance || 0,
+                        value: itemValue,
+                        rarity: item.rarity || '',
+                        isRandom: item.isRandom,
+                        minQty: item.minQty,
+                        maxQty: item.maxQty
+                    });
+                });
+
+                // Calculate ROI, Discount, Multiplier
+                var roi = 0;
+                var discount = 0;
+                var multi = 0;
+
+                if(price > 0 && ev > 0) {
+                    roi = ((ev - price) / price) * 100;
+                    discount = (1 - (price / ev)) * 100;
+                    multi = Math.max(1, Math.round((ev - price) / price));
+                }
+
+                // Render results
+                renderChestResults(ev, price, roi, discount, multi, itemDetails, totalChance);
+
+                // Update reverse mode if active
+                if(appData.calcMode === 'reverse') {
+                    updateChestReverseMode(ev, price);
+                }
+
+                safeSave();
+            }
+
+            function renderChestResults(ev, price, roi, discount, multi, itemDetails, totalChance) {
+                var container = document.getElementById('chestResults');
+                if(!container) return;
+
+                // Determine quality class
+                var qualityClass = 'val-ok';
+                var qualityBadge = 'Normal';
+                if(roi < 0) { qualityClass = 'val-bad'; qualityBadge = 'Bad Deal'; }
+                else if(roi >= 500) { qualityClass = 'val-legendary'; qualityBadge = 'Legendary'; }
+                else if(roi >= 250) { qualityClass = 'val-epic'; qualityBadge = 'Epic'; }
+                else if(roi >= 100) { qualityClass = 'val-good'; qualityBadge = 'Good'; }
+
+                var html = '<div class="' + qualityClass + '" style="border:2px solid; border-radius:8px; padding:15px; margin-bottom:20px;">' +
+                    '<div class="badge">' + qualityBadge + '</div>' +
+                    '<div style="text-align:center; margin-top:10px;">' +
+                    '<div style="font-size:0.9em; color:var(--text-sec);">Expected Value (EV)</div>' +
+                    '<div style="font-size:2.5em; font-weight:800; margin:5px 0;">$' + ev.toFixed(2) + '</div>' +
+                    '<div style="font-size:1.2em; margin-bottom:10px;">ROI: <strong>' + Math.max(0, roi).toFixed(0) + '%</strong></div>' +
+                    '</div>' +
+                    '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; padding-top:10px; border-top:1px solid var(--border);">' +
+                    '<div style="text-align:center;"><div style="color:var(--text-sec); font-size:0.85em;">Цена</div><div style="font-weight:bold;">$' + price.toFixed(2) + '</div></div>' +
+                    '<div style="text-align:center;"><div style="color:var(--text-sec); font-size:0.85em;">Multiplier</div><div style="font-weight:bold;">' + multi + 'x</div></div>' +
+                    '<div style="text-align:center;"><div style="color:var(--text-sec); font-size:0.85em;">Discount</div><div style="font-weight:bold;">' + Math.max(0, discount).toFixed(0) + '%</div></div>' +
+                    '<div style="text-align:center;"><div style="color:var(--text-sec); font-size:0.85em;">Total Chance</div><div style="font-weight:bold;">' + totalChance.toFixed(0) + '%</div></div>' +
+                    '</div>' +
+                    '</div>';
+
+                // Item details
+                if(itemDetails.length > 0) {
+                    html += '<h4 style="margin-bottom:10px;">📋 Детализация предметов</h4>';
+                    itemDetails.forEach(function(detail) {
+                        var qtyText = detail.isRandom ?
+                            detail.minQty + '-' + detail.maxQty + ' (avg: ' + detail.avgQty.toFixed(1) + ')' :
+                            detail.avgQty.toFixed(0);
+                        var rarityText = detail.rarity ? ' [' + detail.rarity + ']' : '';
+
+                        html += '<div style="background:var(--surface-2); padding:12px; border-radius:6px; margin-bottom:10px;">' +
+                            '<div style="display:flex; justify-content:space-between; margin-bottom:5px;">' +
+                            '<strong>' + escapeHtml(detail.name) + rarityText + '</strong>' +
+                            '<span style="color:var(--warning); font-weight:bold;">$' + detail.value.toFixed(2) + '</span>' +
+                            '</div>' +
+                            '<div style="font-size:0.85em; color:var(--text-sec); margin-bottom:5px;">Количество: ' + qtyText + ' | Шанс: ' + detail.dropChance + '%</div>' +
+                            '<div style="background:var(--surface); border-radius:4px; height:8px; overflow:hidden;">' +
+                            '<div style="background:linear-gradient(90deg, #FFB300, #FF5722); width:' + detail.dropChance + '%; height:100%;"></div>' +
+                            '</div>' +
+                            '</div>';
+                    });
+                }
+
+                // Action buttons
+                html += '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:20px;">' +
+                    '<button class="btn-primary" id="btnCopyChest">📋 Copy</button>' +
+                    '<button class="btn-primary" id="btnCompareChest">⬇ Сравнить</button>' +
+                    '</div>';
+
+                container.innerHTML = html;
+
+                // Bind buttons
+                var btnCopy = document.getElementById('btnCopyChest');
+                var btnCompare = document.getElementById('btnCompareChest');
+                if(btnCopy) btnCopy.addEventListener('click', copyChestToClipboard);
+                if(btnCompare) btnCompare.addEventListener('click', addChestToHistory);
+            }
+
+            function renderChestSimulator() {
+                var container = document.getElementById('chestSimulator');
+                if(!container) return;
+
+                container.innerHTML =
+                    '<div style="margin-bottom:10px;"><label style="display:block; margin-bottom:5px; color:var(--text-sec); font-size:0.9em;">Открыть сундуков:</label>' +
+                    '<input type="number" id="simIterations" value="100" min="1" step="1" style="width:100%;"></div>' +
+                    '<button class="btn-primary" id="btnSimulate" style="width:100%;">🎰 Симулировать</button>' +
+                    '<div id="simResults" style="margin-top:15px;"></div>';
+
+                document.getElementById('btnSimulate').addEventListener('click', runChestSimulation);
+            }
+
+            function runChestSimulation() {
+                var iterations = parseInt(document.getElementById('simIterations').value) || 100;
+                var price = parseFloat(document.getElementById('chestPrice').value) || 0;
+
+                var totalValue = 0;
+                var dropCounts = {};
+
+                // Initialize drop counts
+                appData.chestConfig.items.forEach(function(item) {
+                    if(item.resourceId) {
+                        var res = appData.resources.find(function(r) { return r.id === item.resourceId });
+                        if(res) dropCounts[res.name] = { count: 0, totalQty: 0 };
+                    }
+                });
+
+                // Run simulation
+                for(var i = 0; i < iterations; i++) {
+                    appData.chestConfig.items.forEach(function(item) {
+                        if(!item.resourceId) return;
+
+                        var res = appData.resources.find(function(r) { return r.id === item.resourceId });
+                        if(!res) return;
+
+                        var dropChance = (item.dropChance || 0) / 100;
+                        var drops = Math.random() < dropChance;
+
+                        if(drops) {
+                            var qty = 0;
+                            if(item.isRandom) {
+                                var min = item.minQty || 0;
+                                var max = item.maxQty || 0;
+                                if(min > 0 && max === 0) qty = min;
+                                else if(min === 0 && max > 0) qty = max;
+                                else qty = Math.floor(Math.random() * (max - min + 1)) + min;
+                            } else {
+                                qty = item.minQty || 0;
+                            }
+
+                            dropCounts[res.name].count++;
+                            dropCounts[res.name].totalQty += qty;
+                            totalValue += res.price * qty;
+                        }
+                    });
+                }
+
+                var avgValue = totalValue / iterations;
+                var totalSpent = price * iterations;
+                var totalReceived = totalValue;
+                var simROI = totalSpent > 0 ? ((totalReceived - totalSpent) / totalSpent) * 100 : 0;
+
+                // Render results
+                var resultsContainer = document.getElementById('simResults');
+                var html = '<div style="background:var(--surface-2); padding:15px; border-radius:8px;">' +
+                    '<h4 style="margin-top:0;">Результаты симуляции</h4>' +
+                    '<div style="margin-bottom:10px;"><strong>Открыто сундуков:</strong> ' + iterations + '</div>' +
+                    '<div style="margin-bottom:10px;"><strong>Средняя стоимость:</strong> $' + avgValue.toFixed(2) + '</div>' +
+                    '<div style="margin-bottom:10px;"><strong>Потрачено:</strong> $' + totalSpent.toFixed(2) + '</div>' +
+                    '<div style="margin-bottom:10px;"><strong>Получено:</strong> $' + totalReceived.toFixed(2) + '</div>' +
+                    '<div style="margin-bottom:15px;"><strong>ROI:</strong> ' + simROI.toFixed(1) + '%</div>' +
+                    '<div style="border-top:1px solid var(--border); padding-top:10px;">' +
+                    '<strong>Распределение дропов:</strong>' +
+                    '<ul style="margin:10px 0; padding-left:20px; font-size:0.9em;">';
+
+                for(var resName in dropCounts) {
+                    var data = dropCounts[resName];
+                    var avgQty = data.count > 0 ? (data.totalQty / data.count).toFixed(1) : 0;
+                    html += '<li>' + escapeHtml(resName) + ': ' + data.count + ' раз (среднее ' + avgQty + ' шт.)</li>';
+                }
+
+                html += '</ul></div></div>';
+                resultsContainer.innerHTML = html;
+            }
+
+            function copyChestToClipboard() {
+                var name = appData.chestConfig.name || 'Сундук';
+                var price = appData.chestConfig.price;
+
+                var text = name + ' ($' + price.toFixed(2) + ')\n';
+
+                // Calculate EV
+                var ev = 0;
+                appData.chestConfig.items.forEach(function(item) {
+                    if(!item.resourceId) return;
+                    var res = appData.resources.find(function(r) { return r.id === item.resourceId });
+                    if(!res) return;
+                    var avgQty = item.isRandom ? ((item.minQty || 0) + (item.maxQty || 0)) / 2 : (item.minQty || 0);
+                    var dropChance = (item.dropChance || 0) / 100;
+                    ev += res.price * avgQty * dropChance;
+                });
+
+                var roi = price > 0 ? ((ev - price) / price) * 100 : 0;
+                text += 'Expected Value: $' + ev.toFixed(2) + '\n';
+                text += 'ROI: ' + Math.max(0, roi).toFixed(0) + '%\n\n';
+                text += 'Содержимое:\n';
+
+                appData.chestConfig.items.forEach(function(item) {
+                    if(!item.resourceId) return;
+                    var res = appData.resources.find(function(r) { return r.id === item.resourceId });
+                    if(!res) return;
+
+                    var qtyText = item.isRandom ? item.minQty + '-' + item.maxQty + ' шт.' : item.minQty + ' шт.';
+                    var rarityText = item.rarity ? ', редкость ' + item.rarity : '';
+                    text += '• ' + res.name + ': ' + qtyText + ', шанс ' + item.dropChance + '%' + rarityText + '\n';
+                });
+
+                navigator.clipboard.writeText(text).then(function() {
+                    var btn = document.getElementById('btnCopyChest');
+                    var originalText = btn.innerHTML;
+                    btn.innerHTML = '✓ Скопировано!';
+                    btn.style.background = 'var(--success)';
+                    setTimeout(function() {
+                        btn.innerHTML = originalText;
+                        btn.style.background = '';
+                    }, 2000);
+                }).catch(function(err) {
+                    alert('Не удалось скопировать:\n\n' + text);
+                });
+            }
+
+            function addChestToHistory() {
+                var price = appData.chestConfig.price;
+                if(price <= 0) return;
+
+                // Calculate EV
+                var ev = 0;
+                appData.chestConfig.items.forEach(function(item) {
+                    if(!item.resourceId) return;
+                    var res = appData.resources.find(function(r) { return r.id === item.resourceId });
+                    if(!res) return;
+                    var avgQty = item.isRandom ? ((item.minQty || 0) + (item.maxQty || 0)) / 2 : (item.minQty || 0);
+                    var dropChance = (item.dropChance || 0) / 100;
+                    ev += res.price * avgQty * dropChance;
+                });
+
+                var roi = price > 0 ? ((ev - price) / price) * 100 : 0;
+                var discount = ev > 0 ? (1 - (price / ev)) * 100 : 0;
+                var multi = Math.max(1, Math.round((ev - price) / price));
+
+                // Build composition string
+                var comp = [];
+                appData.chestConfig.items.forEach(function(item) {
+                    if(!item.resourceId) return;
+                    var res = appData.resources.find(function(r) { return r.id === item.resourceId });
+                    if(!res) return;
+                    var qtyText = item.isRandom ? item.minQty + '-' + item.maxQty : item.minQty;
+                    comp.push(qtyText + ' ' + res.name + ' (' + item.dropChance + '%)');
+                });
+
+                var item = {
+                    id: Date.now(),
+                    name: appData.chestConfig.name || 'Сундук #' + (appData.history.length + 1),
+                    price: price,
+                    base: ev,
+                    comp: '📦 ' + comp.join(', '),
+                    roi: roi,
+                    disc: discount,
+                    multi: multi,
+                    type: 'chest'
+                };
+
+                appData.history.unshift(item);
+                safeSave();
+                renderHistory();
+
+                var btn = document.getElementById('btnCompareChest');
+                var originalText = btn.innerHTML;
+                btn.innerHTML = '✓ Добавлено!';
+                btn.style.background = 'var(--success)';
+                setTimeout(function() {
+                    btn.innerHTML = originalText;
+                    btn.style.background = '';
+                }, 2000);
+            }
+
+            function setChestCalcMode(mode) {
+                appData.calcMode = mode;
+
+                var normalBtn = document.getElementById('chestModeNormal');
+                var reverseBtn = document.getElementById('chestModeReverse');
+                var reverseSection = document.getElementById('chestReverseSection');
+
+                if(mode === 'normal') {
+                    normalBtn.classList.add('active');
+                    reverseBtn.classList.remove('active');
+                    reverseSection.style.display = 'none';
+                } else {
+                    normalBtn.classList.remove('active');
+                    reverseBtn.classList.add('active');
+                    reverseSection.style.display = 'block';
+                    updateChestReverseMode();
+                }
+
+                safeSave();
+            }
+
+            function onChestTargetMultiChange() {
+                var multi = parseFloat(document.getElementById('chestTargetMulti').value) || 1;
+                var roi = multi * 100;
+                document.getElementById('chestTargetROI').value = roi.toFixed(0);
+                var discount = (roi / (100 + roi)) * 100;
+                document.getElementById('chestTargetDiscount').value = discount.toFixed(1);
+                updateChestReverseMode();
+            }
+
+            function onChestTargetROIChange() {
+                var roi = parseFloat(document.getElementById('chestTargetROI').value) || 0;
+                var multi = Math.round(roi / 100);
+                if(multi < 1) multi = 1;
+                document.getElementById('chestTargetMulti').value = multi;
+                var discount = (roi / (100 + roi)) * 100;
+                document.getElementById('chestTargetDiscount').value = discount.toFixed(1);
+                updateChestReverseMode();
+            }
+
+            function onChestTargetDiscountChange() {
+                var discount = parseFloat(document.getElementById('chestTargetDiscount').value) || 0;
+                if(discount >= 100) discount = 99.9;
+                var roi = (discount / (100 - discount)) * 100;
+                document.getElementById('chestTargetROI').value = roi.toFixed(0);
+                var multi = Math.round(roi / 100);
+                if(multi < 1) multi = 1;
+                document.getElementById('chestTargetMulti').value = multi;
+                updateChestReverseMode();
+            }
+
+            function updateChestReverseMode(currentEV, currentPrice) {
+                if(appData.calcMode !== 'reverse') return;
+
+                var price = currentPrice || parseFloat(document.getElementById('chestPrice').value) || 0;
+                var targetROI = parseFloat(document.getElementById('chestTargetROI').value) || 0;
+
+                var profitRatio = targetROI / 100;
+                var requiredEV = price * (1 + profitRatio);
+
+                document.getElementById('chestTargetValue').innerText = '$' + requiredEV.toFixed(2);
+
+                // Calculate current EV if not provided
+                if(currentEV === undefined) {
+                    currentEV = 0;
+                    appData.chestConfig.items.forEach(function(item) {
+                        if(!item.resourceId) return;
+                        var res = appData.resources.find(function(r) { return r.id === item.resourceId });
+                        if(!res) return;
+                        var avgQty = item.isRandom ? ((item.minQty || 0) + (item.maxQty || 0)) / 2 : (item.minQty || 0);
+                        var dropChance = (item.dropChance || 0) / 100;
+                        currentEV += res.price * avgQty * dropChance;
+                    });
+                }
+
+                var remaining = requiredEV - currentEV;
+                var recommendationDiv = document.getElementById('chestRecommendation');
+
+                if(remaining > 0) {
+                    recommendationDiv.innerHTML = '💡 <strong>Рекомендация:</strong><br>' +
+                        'Текущая EV: $' + currentEV.toFixed(2) + '<br>' +
+                        'Не хватает: <span style="color:var(--danger); font-weight:bold;">$' + remaining.toFixed(2) + '</span><br>' +
+                        'Добавьте предметы или увеличьте количество/шансы дропа.';
+                } else {
+                    recommendationDiv.innerHTML = '✓ <strong style="color:var(--success);">Цель достигнута!</strong><br>' +
+                        'Текущая EV: $' + currentEV.toFixed(2) + '<br>' +
+                        'Превышение: <span style="color:var(--success); font-weight:bold;">$' + Math.abs(remaining).toFixed(2) + '</span>';
+                }
             }
 
             // --- REVERSE MODE ---
