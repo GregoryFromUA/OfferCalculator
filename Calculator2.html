@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Offer Calculator v.1.2</title>
+    <title>Offer Calculator v.1.2.1</title>
     <style>
         :root {
             --primary: #6200ea;
@@ -444,7 +444,7 @@
             <a id="btnImportTrigger">📂 Импорт</a>
             <input type="file" id="importFile" style="display:none">
         </div>
-        <div>Offer Calculator v.1.2</div>
+        <div>Offer Calculator v.1.2.1</div>
     </div>
 
     <!-- Tabs (No Onclick Here!) -->
@@ -1217,9 +1217,35 @@
                 }
 
                 // Calculate free item % for free slots
+                // New logic: Free slots calculate % relative to reference paid slot
+                // - If free slot is BEFORE any paid slot → use first paid slot AFTER
+                // - If free slot is AFTER paid slot → use last paid slot BEFORE
                 var freeItemPercent = 0;
-                if(slot.type === 'free' && totalSpent > 0) {
-                    freeItemPercent = (baseValue / totalSpent) * 100;
+                if(slot.type === 'free') {
+                    var referencePaidSlot = null;
+
+                    // Step 1: Try to find last paid slot BEFORE current
+                    for(var i = index - 1; i >= 0; i--) {
+                        if(appData.chainSlots[i].type === 'paid') {
+                            referencePaidSlot = appData.chainSlots[i];
+                            break;
+                        }
+                    }
+
+                    // Step 2: If not found, find first paid slot AFTER current
+                    if(!referencePaidSlot) {
+                        for(var i = index + 1; i < appData.chainSlots.length; i++) {
+                            if(appData.chainSlots[i].type === 'paid') {
+                                referencePaidSlot = appData.chainSlots[i];
+                                break;
+                            }
+                        }
+                    }
+
+                    // Step 3: Calculate percentage relative to reference paid slot
+                    if(referencePaidSlot && referencePaidSlot.price > 0) {
+                        freeItemPercent = (baseValue / referencePaidSlot.price) * 100;
+                    }
                 }
 
                 return {
