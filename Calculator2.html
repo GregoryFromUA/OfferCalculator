@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Offer Calculator v.1.1</title>
+    <title>Offer Calculator v.1.2</title>
     <style>
         :root {
             --primary: #6200ea;
@@ -444,7 +444,7 @@
             <a id="btnImportTrigger">📂 Импорт</a>
             <input type="file" id="importFile" style="display:none">
         </div>
-        <div>Offer Calculator v.1.1</div>
+        <div>Offer Calculator v.1.2</div>
     </div>
 
     <!-- Tabs (No Onclick Here!) -->
@@ -1143,66 +1143,45 @@
                 appData.chainSlots[index].price = price;
                 safeSave();
 
-                // Save focus information before re-rendering
-                var activeElement = document.activeElement;
-                var focusInfo = null;
-                if(activeElement && activeElement.classList.contains('slot-price-input')) {
-                    focusInfo = {
-                        index: activeElement.getAttribute('data-index'),
-                        className: 'slot-price-input',
-                        selectionStart: activeElement.selectionStart,
-                        selectionEnd: activeElement.selectionEnd
-                    };
-                }
-
-                renderChainSlots();
-
-                // Restore focus after re-rendering
-                if(focusInfo) {
-                    var selector = '.' + focusInfo.className + '[data-index="' + focusInfo.index + '"]';
-                    var element = document.querySelector(selector);
-                    if(element) {
-                        element.focus();
-                        // Restore cursor position
-                        if(element.setSelectionRange && focusInfo.selectionStart !== undefined) {
-                            element.setSelectionRange(focusInfo.selectionStart, focusInfo.selectionEnd);
-                        }
-                    }
-                }
+                // Update only metrics display, not the entire slot
+                updateSlotMetricsDisplay(index);
+                updateChainResults();
             }
 
             function updateSlotItem(index, itemIndex, field, value) {
                 appData.chainSlots[index].items[itemIndex][field] = value;
                 safeSave();
 
-                // Save focus information before re-rendering
-                var activeElement = document.activeElement;
-                var focusInfo = null;
-                if(activeElement && (activeElement.classList.contains('slot-item-count') ||
-                                     activeElement.classList.contains('slot-res-select'))) {
-                    focusInfo = {
-                        index: activeElement.getAttribute('data-index'),
-                        item: activeElement.getAttribute('data-item'),
-                        className: activeElement.classList.contains('slot-item-count') ? 'slot-item-count' : 'slot-res-select',
-                        selectionStart: activeElement.selectionStart,
-                        selectionEnd: activeElement.selectionEnd
-                    };
+                // Update only metrics display, not the entire slot
+                updateSlotMetricsDisplay(index);
+                updateChainResults();
+            }
+
+            function updateSlotMetricsDisplay(index) {
+                // Find the slot card in DOM
+                var slotCards = document.querySelectorAll('.slot-card');
+                if(!slotCards[index]) return;
+
+                var slot = appData.chainSlots[index];
+                var metrics = calculateSlotMetrics(slot, index);
+
+                // Find metrics container within this slot card
+                var metricsContainer = slotCards[index].querySelector('.slot-metrics');
+                if(!metricsContainer) return;
+
+                // Update metrics HTML
+                var html = '<div class="slot-metric"><div class="slot-metric-label">Base Value</div><div class="slot-metric-value">$' + metrics.baseValue.toFixed(2) + '</div></div>';
+
+                if(slot.type === 'paid') {
+                    html += '<div class="slot-metric"><div class="slot-metric-label">Discount</div><div class="slot-metric-value">' + metrics.discount.toFixed(0) + '%</div></div>';
+                } else {
+                    html += '<div class="slot-metric"><div class="slot-metric-label">Free Item %</div><div class="slot-metric-value">' + metrics.freeItemPercent.toFixed(1) + '%</div></div>';
                 }
 
-                renderChainSlots();
+                html += '<div class="slot-metric"><div class="slot-metric-label">Cumul. Value</div><div class="slot-metric-value">$' + metrics.cumulativeValue.toFixed(2) + '</div></div>' +
+                    '<div class="slot-metric"><div class="slot-metric-label">Total Spent</div><div class="slot-metric-value">$' + metrics.totalSpent.toFixed(2) + '</div></div>';
 
-                // Restore focus after re-rendering
-                if(focusInfo) {
-                    var selector = '.' + focusInfo.className + '[data-index="' + focusInfo.index + '"][data-item="' + focusInfo.item + '"]';
-                    var element = document.querySelector(selector);
-                    if(element) {
-                        element.focus();
-                        // Restore cursor position for input fields
-                        if(element.setSelectionRange && focusInfo.selectionStart !== undefined) {
-                            element.setSelectionRange(focusInfo.selectionStart, focusInfo.selectionEnd);
-                        }
-                    }
-                }
+                metricsContainer.innerHTML = html;
             }
 
             function calculateSlotMetrics(slot, index) {
