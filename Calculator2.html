@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Offer Calculator v.1.2.1</title>
+    <title>Offer Calculator v.1.2.2</title>
     <style>
         :root {
             --primary: #6200ea;
@@ -444,7 +444,7 @@
             <a id="btnImportTrigger">📂 Импорт</a>
             <input type="file" id="importFile" style="display:none">
         </div>
-        <div>Offer Calculator v.1.2.1</div>
+        <div>Offer Calculator v.1.2.2</div>
     </div>
 
     <!-- Tabs (No Onclick Here!) -->
@@ -1143,8 +1143,14 @@
                 appData.chainSlots[index].price = price;
                 safeSave();
 
-                // Update only metrics display, not the entire slot
+                // Update metrics for this slot
                 updateSlotMetricsDisplay(index);
+
+                // If this is a paid slot, update all related free slots
+                if(appData.chainSlots[index].type === 'paid') {
+                    updateRelatedFreeSlots(index);
+                }
+
                 updateChainResults();
             }
 
@@ -1152,9 +1158,38 @@
                 appData.chainSlots[index].items[itemIndex][field] = value;
                 safeSave();
 
-                // Update only metrics display, not the entire slot
+                // Update metrics for this slot
                 updateSlotMetricsDisplay(index);
+
+                // If this is a paid slot, update all related free slots
+                if(appData.chainSlots[index].type === 'paid') {
+                    updateRelatedFreeSlots(index);
+                }
+
                 updateChainResults();
+            }
+
+            function updateRelatedFreeSlots(paidSlotIndex) {
+                // Updates all free slots that reference this paid slot
+                // This includes:
+                // - Free slots BEFORE this paid (until previous paid or start)
+                // - Free slots AFTER this paid (until next paid or end)
+
+                // Update free slots BEFORE this paid slot
+                for(var i = paidSlotIndex - 1; i >= 0; i--) {
+                    if(appData.chainSlots[i].type === 'paid') break; // Stop at previous paid
+                    if(appData.chainSlots[i].type === 'free') {
+                        updateSlotMetricsDisplay(i);
+                    }
+                }
+
+                // Update free slots AFTER this paid slot
+                for(var i = paidSlotIndex + 1; i < appData.chainSlots.length; i++) {
+                    if(appData.chainSlots[i].type === 'paid') break; // Stop at next paid
+                    if(appData.chainSlots[i].type === 'free') {
+                        updateSlotMetricsDisplay(i);
+                    }
+                }
             }
 
             function updateSlotMetricsDisplay(index) {
