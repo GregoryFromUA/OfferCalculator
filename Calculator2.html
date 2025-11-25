@@ -1142,13 +1142,67 @@
             function updateSlotPrice(index, price) {
                 appData.chainSlots[index].price = price;
                 safeSave();
+
+                // Save focus information before re-rendering
+                var activeElement = document.activeElement;
+                var focusInfo = null;
+                if(activeElement && activeElement.classList.contains('slot-price-input')) {
+                    focusInfo = {
+                        index: activeElement.getAttribute('data-index'),
+                        className: 'slot-price-input',
+                        selectionStart: activeElement.selectionStart,
+                        selectionEnd: activeElement.selectionEnd
+                    };
+                }
+
                 renderChainSlots();
+
+                // Restore focus after re-rendering
+                if(focusInfo) {
+                    var selector = '.' + focusInfo.className + '[data-index="' + focusInfo.index + '"]';
+                    var element = document.querySelector(selector);
+                    if(element) {
+                        element.focus();
+                        // Restore cursor position
+                        if(element.setSelectionRange && focusInfo.selectionStart !== undefined) {
+                            element.setSelectionRange(focusInfo.selectionStart, focusInfo.selectionEnd);
+                        }
+                    }
+                }
             }
 
             function updateSlotItem(index, itemIndex, field, value) {
                 appData.chainSlots[index].items[itemIndex][field] = value;
                 safeSave();
+
+                // Save focus information before re-rendering
+                var activeElement = document.activeElement;
+                var focusInfo = null;
+                if(activeElement && (activeElement.classList.contains('slot-item-count') ||
+                                     activeElement.classList.contains('slot-res-select'))) {
+                    focusInfo = {
+                        index: activeElement.getAttribute('data-index'),
+                        item: activeElement.getAttribute('data-item'),
+                        className: activeElement.classList.contains('slot-item-count') ? 'slot-item-count' : 'slot-res-select',
+                        selectionStart: activeElement.selectionStart,
+                        selectionEnd: activeElement.selectionEnd
+                    };
+                }
+
                 renderChainSlots();
+
+                // Restore focus after re-rendering
+                if(focusInfo) {
+                    var selector = '.' + focusInfo.className + '[data-index="' + focusInfo.index + '"][data-item="' + focusInfo.item + '"]';
+                    var element = document.querySelector(selector);
+                    if(element) {
+                        element.focus();
+                        // Restore cursor position for input fields
+                        if(element.setSelectionRange && focusInfo.selectionStart !== undefined) {
+                            element.setSelectionRange(focusInfo.selectionStart, focusInfo.selectionEnd);
+                        }
+                    }
+                }
             }
 
             function calculateSlotMetrics(slot, index) {
@@ -1542,7 +1596,7 @@
                 appData.chestConfig.price = price;
 
                 var ev = 0; // Expected Value
-                var totalChance = 0;
+                var avgItems = 0; // Average items per opening
                 var itemDetails = [];
 
                 appData.chestConfig.items.forEach(function(item) {
@@ -1565,7 +1619,7 @@
                     var dropChance = (item.dropChance || 0) / 100;
                     var itemValue = res.price * avgQty * dropChance;
                     ev += itemValue;
-                    totalChance += item.dropChance || 0;
+                    avgItems += dropChance; // Average number of items that will drop
 
                     itemDetails.push({
                         name: res.name,
@@ -1591,7 +1645,7 @@
                 }
 
                 // Render results
-                renderChestResults(ev, price, roi, discount, multi, itemDetails, totalChance);
+                renderChestResults(ev, price, roi, discount, multi, itemDetails, avgItems);
 
                 // Update reverse mode if active
                 if(appData.calcMode === 'reverse') {
@@ -1601,7 +1655,7 @@
                 safeSave();
             }
 
-            function renderChestResults(ev, price, roi, discount, multi, itemDetails, totalChance) {
+            function renderChestResults(ev, price, roi, discount, multi, itemDetails, avgItems) {
                 var container = document.getElementById('chestResults');
                 if(!container) return;
 
@@ -1624,7 +1678,7 @@
                     '<div style="text-align:center;"><div style="color:var(--text-sec); font-size:0.85em;">Цена</div><div style="font-weight:bold;">$' + price.toFixed(2) + '</div></div>' +
                     '<div style="text-align:center;"><div style="color:var(--text-sec); font-size:0.85em;">Multiplier</div><div style="font-weight:bold;">' + multi + 'x</div></div>' +
                     '<div style="text-align:center;"><div style="color:var(--text-sec); font-size:0.85em;">Discount</div><div style="font-weight:bold;">' + Math.max(0, discount).toFixed(0) + '%</div></div>' +
-                    '<div style="text-align:center;"><div style="color:var(--text-sec); font-size:0.85em;">Total Chance</div><div style="font-weight:bold;">' + totalChance.toFixed(0) + '%</div></div>' +
+                    '<div style="text-align:center;"><div style="color:var(--text-sec); font-size:0.85em;">Avg items</div><div style="font-weight:bold;">' + avgItems.toFixed(1) + '</div></div>' +
                     '</div>' +
                     '</div>';
 
@@ -2221,8 +2275,16 @@
                 appData.resources[idx][field] = val;
                 safeSave();
                 updateNoAdsLabel();
-                renderInputs();
-                calculate();
+
+                // Call appropriate function based on current tab
+                if(appData.currentTab === 'chest') {
+                    calculateChest();
+                } else if(appData.currentTab === 'chain') {
+                    renderChainSlots();
+                } else {
+                    renderInputs();
+                    calculate();
+                }
             }
 
             function addNewResource() {
