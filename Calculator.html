@@ -2264,7 +2264,8 @@
             function copyResultToClipboard() {
                 var name = document.getElementById('offerName').value || 'Offer';
                 var price = parseFloat(document.getElementById('offerPrice').value) || 0;
-                var base = document.getElementById('resBase').innerText;
+                var baseText = document.getElementById('resBase').innerText;
+                var base = parseFloat(baseText.replace('$',''));
                 var multi = document.getElementById('resMulti').innerText;
                 var roi = document.getElementById('resRoi').innerText;
                 var disc = document.getElementById('resDisc').innerText;
@@ -2280,10 +2281,26 @@
                 });
                 if(document.getElementById('cb_noads').checked) comps.push("No Ads");
 
-                // Format text: "Name ($price): composition. Value: $base (Xx) | ROI% | Discount%"
-                var composition = comps.length > 0 ? comps.join(', ') : 'empty';
-                var text = name + ' ($' + price.toFixed(2) + '): ' + composition +
-                           '. Value: ' + base + ' (' + multi + ') | ROI: ' + roi + ' | Discount: ' + disc;
+                var composition = comps.length > 0 ? comps.join(', ') : '';
+
+                // Format: tab-delimited for Excel/Google Sheets (same as history copy)
+                var text = [
+                    appData.setupData.status || '',
+                    name,
+                    appData.setupData.title || '',
+                    '$' + price.toFixed(2),
+                    composition,
+                    baseText,
+                    disc,
+                    roi,
+                    multi,
+                    appData.setupData.timer || '',
+                    appData.setupData.cooldown || '',
+                    appData.setupData.purchaseCount || '',
+                    appData.setupData.quantity || '',
+                    appData.setupData.id || '',
+                    appData.setupData.note || ''
+                ].join('\t');
 
                 // Copy to clipboard
                 var btn = document.getElementById('btnCopyResult');
