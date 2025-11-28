@@ -171,6 +171,14 @@
         th { background: #252525; color: var(--text-sec); }
         tr:hover { background: #2c2c2c; }
 
+        /* History table column widths */
+        th:nth-child(5), td:nth-child(5) { min-width: 200px; max-width: 300px; } /* Состав - wider */
+        th:nth-child(7), td:nth-child(7) { width: 70px; max-width: 70px; } /* Discount */
+        th:nth-child(8), td:nth-child(8) { width: 70px; max-width: 70px; } /* ROI */
+        th:nth-child(9), td:nth-child(9) { width: 50px; max-width: 50px; } /* X? */
+        th:nth-child(12), td:nth-child(12) { width: 80px; max-width: 80px; } /* Purchase Count */
+        th:nth-child(13), td:nth-child(13) { width: 70px; max-width: 70px; } /* Quantity */
+
         /* Modals */
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 100; display: none; justify-content: center; align-items: center; }
         .overlay.open { display: flex; }
@@ -462,7 +470,7 @@
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                 <div style="display:flex; gap:8px; align-items:center;">
                     <button class="btn-sec btn-icon" id="btnOpenSetup">+ Setup</button>
-                    <button class="btn-sec btn-icon" id="btnOpenTabConfig">✏ Поля</button>
+                    <button class="btn-sec btn-icon" id="btnOpenTabConfig">✏ Ресы</button>
                 </div>
                 <h3 id="tabTitle">Pack Config</h3>
             </div>
@@ -583,7 +591,7 @@
     <!-- History -->
     <div class="history-container">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <h3>История сравнений</h3>
+            <h3>Офера / Результы</h3>
             <button class="btn-sec btn-icon" id="btnClearHistory">Очистить</button>
         </div>
         <table id="historyTable">
@@ -632,7 +640,7 @@
     <div class="overlay" id="modalTabConfig">
         <div class="modal">
             <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
-                <h3>Поля вкладки</h3>
+                <h3>Ресы вкладки</h3>
                 <button class="btn-icon" id="btnCloseTabModal">✖</button>
             </div>
             <div id="tabFieldList"></div>
@@ -2278,20 +2286,28 @@
                            '. Value: ' + base + ' (' + multi + ') | ROI: ' + roi + ' | Discount: ' + disc;
 
                 // Copy to clipboard
+                var btn = document.getElementById('btnCopyResult');
+                var originalText = btn.innerHTML;
+
                 navigator.clipboard.writeText(text).then(function() {
-                    // Show feedback
-                    var btn = document.getElementById('btnCopyResult');
-                    var originalText = btn.innerHTML;
-                    btn.innerHTML = '✓ Copied!';
+                    // Show success feedback
+                    btn.innerHTML = '✓';
                     btn.style.background = 'var(--success)';
 
                     setTimeout(function() {
                         btn.innerHTML = originalText;
                         btn.style.background = '';
-                    }, 2000);
+                    }, 800);
                 }).catch(function(err) {
-                    // Fallback for older browsers
-                    alert('Не удалось скопировать. Попробуйте выделить текст вручную:\n\n' + text);
+                    // Show error feedback
+                    console.error('Failed to copy:', err);
+                    btn.innerHTML = '✗';
+                    btn.style.background = 'var(--danger)';
+
+                    setTimeout(function() {
+                        btn.innerHTML = originalText;
+                        btn.style.background = '';
+                    }, 800);
                 });
             }
 
@@ -2369,8 +2385,8 @@
                             '<button class="btn-danger btn-icon btn-del-hist" title="Удалить">×</button>' +
                         '</td>';
 
-                    tr.querySelector('.btn-copy-hist').addEventListener('click', function() { copyHistoryItem(idx); });
-                    tr.querySelector('.btn-edit-hist').addEventListener('click', function() { editHistoryItem(idx); });
+                    tr.querySelector('.btn-copy-hist').addEventListener('click', function(e) { copyHistoryItem(idx, e.target); });
+                    tr.querySelector('.btn-edit-hist').addEventListener('click', function(e) { editHistoryItem(idx, e.target); });
                     tr.querySelector('.btn-del-hist').addEventListener('click', function() { delHistory(idx); });
                     tbody.appendChild(tr);
                 });
@@ -2392,7 +2408,7 @@
                 }
             }
 
-            function copyHistoryItem(idx) {
+            function copyHistoryItem(idx, btn) {
                 var h = appData.history[idx];
                 // Format: all fields separated by tabs for Excel/Google Sheets
                 var text = [
@@ -2413,13 +2429,41 @@
                     h.note || ''
                 ].join('\t');
 
+                // Visual feedback
+                var originalText = btn.innerHTML;
+                var originalBg = btn.style.background;
+                btn.innerHTML = '✓';
+                btn.style.background = 'var(--success)';
+
+                setTimeout(function() {
+                    btn.innerHTML = originalText;
+                    btn.style.background = originalBg;
+                }, 800);
+
                 navigator.clipboard.writeText(text).catch(function(err) {
                     console.error('Failed to copy:', err);
+                    btn.innerHTML = '✗';
+                    btn.style.background = 'var(--danger)';
+                    setTimeout(function() {
+                        btn.innerHTML = originalText;
+                        btn.style.background = originalBg;
+                    }, 800);
                 });
             }
 
-            function editHistoryItem(idx) {
+            function editHistoryItem(idx, btn) {
                 var h = appData.history[idx];
+
+                // Visual feedback
+                var originalText = btn.innerHTML;
+                var originalBg = btn.style.background;
+                btn.innerHTML = '✓';
+                btn.style.background = 'var(--success)';
+
+                setTimeout(function() {
+                    btn.innerHTML = originalText;
+                    btn.style.background = originalBg;
+                }, 800);
 
                 // Populate Setup modal fields
                 appData.setupData.status = h.status || '';
