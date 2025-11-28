@@ -460,8 +460,11 @@
         <!-- Left: Config -->
         <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <button class="btn-sec btn-icon" id="btnOpenSetup">+ Setup</button>
+                    <button class="btn-sec btn-icon" id="btnOpenTabConfig">✏ Поля</button>
+                </div>
                 <h3 id="tabTitle">Pack Config</h3>
-                <button class="btn-sec btn-icon" id="btnOpenTabConfig">✏ Поля</button>
             </div>
 
             <!-- Mode Toggle -->
@@ -586,13 +589,21 @@
         <table id="historyTable">
             <thead>
                 <tr>
+                    <th>Статус</th>
                     <th>Название</th>
                     <th>Цена</th>
+                    <th>Заголовок</th>
                     <th>Состав</th>
                     <th>Base Value</th>
                     <th>Discount</th>
                     <th>ROI</th>
-                    <th>Multiplier</th>
+                    <th>X?</th>
+                    <th>Таймер</th>
+                    <th>Кулдаун</th>
+                    <th>Purchase Count</th>
+                    <th>Quantity</th>
+                    <th>ID</th>
+                    <th>Примечание</th>
                     <th></th>
                 </tr>
             </thead>
@@ -629,6 +640,54 @@
         </div>
     </div>
 
+    <div class="overlay" id="modalSetup">
+        <div class="modal">
+            <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+                <h3>Поля для заполнения</h3>
+                <button class="btn-icon" id="btnCloseSetupModal">✖</button>
+            </div>
+            <div style="display:grid; gap:15px;">
+                <div class="input-group">
+                    <label>Статус</label>
+                    <input type="text" id="setupStatus" placeholder="Статус">
+                </div>
+                <div class="input-group">
+                    <label>Название</label>
+                    <input type="text" id="setupName" placeholder="Название">
+                </div>
+                <div class="input-group">
+                    <label>Заголовок</label>
+                    <input type="text" id="setupTitle" placeholder="Заголовок">
+                </div>
+                <div class="input-group">
+                    <label>Таймер</label>
+                    <input type="text" id="setupTimer" placeholder="2d, 48h">
+                </div>
+                <div class="input-group">
+                    <label>Кулдаун</label>
+                    <input type="text" id="setupCooldown" placeholder="2d, 48h">
+                </div>
+                <div class="input-group">
+                    <label>Purchase Count</label>
+                    <input type="text" id="setupPurchaseCount" placeholder="Purchase Count">
+                </div>
+                <div class="input-group">
+                    <label>Quantity</label>
+                    <input type="text" id="setupQuantity" placeholder="Quantity">
+                </div>
+                <div class="input-group">
+                    <label>ID</label>
+                    <input type="text" id="setupID" placeholder="ID">
+                </div>
+                <div class="input-group">
+                    <label>Примечание</label>
+                    <input type="text" id="setupNote" placeholder="Примечание">
+                </div>
+            </div>
+            <button class="btn-primary" style="margin-top:15px;" id="btnSaveSetup">Применить</button>
+        </div>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             
@@ -662,6 +721,17 @@
                     name: '',
                     price: 0.99,
                     items: []
+                },
+                setupData: {  // Setup fields for current offer
+                    status: '',
+                    name: '',
+                    title: '',
+                    timer: '',
+                    cooldown: '',
+                    purchaseCount: '',
+                    quantity: '',
+                    id: '',
+                    note: ''
                 }
             };
 
@@ -749,10 +819,16 @@
                 // Modals
                 document.getElementById('btnCloseResModal').addEventListener('click', function() { closeModal('modalResources'); });
                 document.getElementById('btnCloseTabModal').addEventListener('click', function() { closeModal('modalTabConfig'); });
-                
+                document.getElementById('btnCloseSetupModal').addEventListener('click', function() { closeModal('modalSetup'); });
+
                 document.getElementById('btnAddNewRes').addEventListener('click', addNewResource);
                 document.getElementById('btnResetDefaults').addEventListener('click', resetDefaults);
                 document.getElementById('btnSaveTabConfig').addEventListener('click', saveTabConfig);
+                document.getElementById('btnSaveSetup').addEventListener('click', saveSetup);
+
+                // Setup Button (for normal tabs - will be re-bound after tab switch)
+                var btnOpenSetup = document.getElementById('btnOpenSetup');
+                if(btnOpenSetup) btnOpenSetup.addEventListener('click', openSetup);
             }
 
             // --- STORAGE ---
@@ -768,6 +844,7 @@
                         if(!appData.calcMode) appData.calcMode = 'normal'; // Default to normal mode
                         if(!appData.chainSlots) appData.chainSlots = []; // Default to empty chain
                         if(!appData.chestConfig) appData.chestConfig = { name: '', price: 0.99, items: [] }; // Default chest config
+                        if(!appData.setupData) appData.setupData = { status: '', name: '', title: '', timer: '', cooldown: '', purchaseCount: '', quantity: '', id: '', note: '' }; // Default setup data
                     }
                 } catch(e) {}
             }
@@ -917,9 +994,11 @@
                     wrapper.innerHTML = originalMainWrapperHTML;
 
                     // Re-bind events for normal tab elements after restoration
+                    var btnOpenSetup = document.getElementById('btnOpenSetup');
                     var btnOpenTabConfig = document.getElementById('btnOpenTabConfig');
                     var cb_noads = document.getElementById('cb_noads');
                     var offerPrice = document.getElementById('offerPrice');
+                    if(btnOpenSetup) btnOpenSetup.addEventListener('click', openSetup);
                     if(btnOpenTabConfig) btnOpenTabConfig.addEventListener('click', openTabConfig);
                     if(cb_noads) cb_noads.addEventListener('change', calculate);
                     if(offerPrice) offerPrice.addEventListener('input', calculate);
@@ -968,8 +1047,11 @@
                 leftCard.className = 'card';
                 leftCard.style.gridColumn = '1';
                 leftCard.innerHTML = '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">' +
+                    '<div style="display:flex; gap:8px; align-items:center;">' +
+                    '<button class="btn-sec btn-icon" id="btnOpenSetup">+ Setup</button>' +
+                    '<button class="btn-primary btn-icon" id="btnAddSlot" style="padding:8px 12px;">+ Add Slot</button>' +
+                    '</div>' +
                     '<h3>Chain Slots</h3>' +
-                    '<button class="btn-primary btn-icon" id="btnAddSlot">+ Add Slot</button>' +
                     '</div>' +
                     '<div id="chainSlotsContainer" class="chain-container"></div>';
 
@@ -989,6 +1071,7 @@
                 wrapper.appendChild(rightCard);
 
                 // Bind events
+                document.getElementById('btnOpenSetup').addEventListener('click', openSetup);
                 document.getElementById('btnAddSlot').addEventListener('click', addChainSlot);
                 document.getElementById('btnCopyChain').addEventListener('click', copyChainToClipboard);
 
@@ -2232,13 +2315,21 @@
                 var profitRatio = (base - price) / price;
                 var item = {
                     id: Date.now(),
+                    status: appData.setupData.status || '',
                     name: document.getElementById('offerName').value || 'Offer #' + (appData.history.length + 1),
                     price: price,
-                    base: base,
+                    title: appData.setupData.title || '',
                     comp: comps.join(', '),
-                    roi: profitRatio * 100,
+                    base: base,
                     disc: (1-(price/base))*100,
-                    multi: Math.max(1, Math.round(profitRatio))
+                    roi: profitRatio * 100,
+                    multi: Math.max(1, Math.round(profitRatio)),
+                    timer: appData.setupData.timer || '',
+                    cooldown: appData.setupData.cooldown || '',
+                    purchaseCount: appData.setupData.purchaseCount || '',
+                    quantity: appData.setupData.quantity || '',
+                    offerId: appData.setupData.id || '',
+                    note: appData.setupData.note || ''
                 };
                 appData.history.unshift(item);
                 safeSave();
@@ -2256,16 +2347,30 @@
                     if(h.roi >= 500) cls = 'text-legendary';
 
                     var tr = document.createElement('tr');
-                    tr.innerHTML = 
+                    tr.innerHTML =
+                        '<td>' + escapeHtml(h.status || '') + '</td>' +
                         '<td><strong>' + escapeHtml(h.name) + '</strong></td>' +
                         '<td>$' + h.price.toFixed(2) + '</td>' +
+                        '<td>' + escapeHtml(h.title || '') + '</td>' +
                         '<td style="font-size:0.85em; color:#ccc;">' + escapeHtml(h.comp) + '</td>' +
                         '<td>$' + h.base.toFixed(2) + '</td>' +
                         '<td>' + Math.max(0, h.disc).toFixed(0) + '%</td>' +
                         '<td class="' + cls + '" style="font-weight:bold">' + Math.max(0, h.roi).toFixed(0) + '%</td>' +
                         '<td>' + h.multi + 'x</td>' +
-                        '<td><button class="btn-danger btn-icon btn-del-hist">×</button></td>';
-                    
+                        '<td>' + escapeHtml(h.timer || '') + '</td>' +
+                        '<td>' + escapeHtml(h.cooldown || '') + '</td>' +
+                        '<td>' + escapeHtml(h.purchaseCount || '') + '</td>' +
+                        '<td>' + escapeHtml(h.quantity || '') + '</td>' +
+                        '<td>' + escapeHtml(h.offerId || '') + '</td>' +
+                        '<td>' + escapeHtml(h.note || '') + '</td>' +
+                        '<td style="white-space:nowrap;">' +
+                            '<button class="btn-sec btn-icon btn-copy-hist" title="Копировать">📋</button>' +
+                            '<button class="btn-sec btn-icon btn-edit-hist" title="Редактировать" style="margin:0 5px;">✏️</button>' +
+                            '<button class="btn-danger btn-icon btn-del-hist" title="Удалить">×</button>' +
+                        '</td>';
+
+                    tr.querySelector('.btn-copy-hist').addEventListener('click', function() { copyHistoryItem(idx); });
+                    tr.querySelector('.btn-edit-hist').addEventListener('click', function() { editHistoryItem(idx); });
                     tr.querySelector('.btn-del-hist').addEventListener('click', function() { delHistory(idx); });
                     tbody.appendChild(tr);
                 });
@@ -2285,6 +2390,106 @@
                     safeSave();
                     renderHistory();
                 }
+            }
+
+            function copyHistoryItem(idx) {
+                var h = appData.history[idx];
+                // Format: all fields separated by tabs for Excel/Google Sheets
+                var text = [
+                    h.status || '',
+                    h.name || '',
+                    '$' + h.price.toFixed(2),
+                    h.title || '',
+                    h.comp || '',
+                    '$' + h.base.toFixed(2),
+                    Math.max(0, h.disc).toFixed(0) + '%',
+                    Math.max(0, h.roi).toFixed(0) + '%',
+                    h.multi + 'x',
+                    h.timer || '',
+                    h.cooldown || '',
+                    h.purchaseCount || '',
+                    h.quantity || '',
+                    h.offerId || '',
+                    h.note || ''
+                ].join('\t');
+
+                navigator.clipboard.writeText(text).then(function() {
+                    alert('✓ Скопировано в буфер обмена!');
+                }).catch(function(err) {
+                    alert('Не удалось скопировать:\n\n' + text);
+                });
+            }
+
+            function editHistoryItem(idx) {
+                var h = appData.history[idx];
+
+                // Populate Setup modal fields
+                appData.setupData.status = h.status || '';
+                appData.setupData.name = h.name || '';
+                appData.setupData.title = h.title || '';
+                appData.setupData.timer = h.timer || '';
+                appData.setupData.cooldown = h.cooldown || '';
+                appData.setupData.purchaseCount = h.purchaseCount || '';
+                appData.setupData.quantity = h.quantity || '';
+                appData.setupData.id = h.offerId || '';
+                appData.setupData.note = h.note || '';
+
+                // Fill Setup modal
+                document.getElementById('setupStatus').value = h.status || '';
+                document.getElementById('setupName').value = h.name || '';
+                document.getElementById('setupTitle').value = h.title || '';
+                document.getElementById('setupTimer').value = h.timer || '';
+                document.getElementById('setupCooldown').value = h.cooldown || '';
+                document.getElementById('setupPurchaseCount').value = h.purchaseCount || '';
+                document.getElementById('setupQuantity').value = h.quantity || '';
+                document.getElementById('setupID').value = h.offerId || '';
+                document.getElementById('setupNote').value = h.note || '';
+
+                // Fill offer name field
+                var offerNameField = document.getElementById('offerName');
+                if(offerNameField) {
+                    offerNameField.value = h.name || '';
+                }
+
+                // Fill price field
+                var priceField = document.getElementById('offerPrice');
+                if(priceField) {
+                    priceField.value = h.price;
+                }
+
+                // Fill resource inputs based on comp field
+                // This is a best-effort approach - parsing the comp string
+                var inputs = document.querySelectorAll('#dynamicInputs .calc-input');
+                inputs.forEach(function(inp) { inp.value = 0; }); // Reset all inputs
+
+                if(h.comp) {
+                    var parts = h.comp.split(', ');
+                    parts.forEach(function(part) {
+                        if(part === 'No Ads') {
+                            var noAdsCheckbox = document.getElementById('cb_noads');
+                            if(noAdsCheckbox) noAdsCheckbox.checked = true;
+                        } else {
+                            // Parse "10 Gem" format
+                            var match = part.match(/^(\d+(?:\.\d+)?)\s+(.+)$/);
+                            if(match) {
+                                var qty = parseFloat(match[1]);
+                                var resName = match[2];
+                                var res = appData.resources.find(function(r) { return r.name === resName; });
+                                if(res) {
+                                    var input = document.querySelector('#dynamicInputs .calc-input[data-id="' + res.id + '"]');
+                                    if(input) input.value = qty;
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Trigger calculation
+                if(typeof calculate === 'function') {
+                    calculate();
+                }
+
+                safeSave();
             }
 
             // --- SETTINGS ---
@@ -2382,6 +2587,42 @@
                 closeModal('modalTabConfig');
                 renderInputs();
                 calculate();
+            }
+
+            function openSetup() {
+                // Load current Setup data into modal
+                document.getElementById('setupStatus').value = appData.setupData.status || '';
+                document.getElementById('setupName').value = appData.setupData.name || '';
+                document.getElementById('setupTitle').value = appData.setupData.title || '';
+                document.getElementById('setupTimer').value = appData.setupData.timer || '';
+                document.getElementById('setupCooldown').value = appData.setupData.cooldown || '';
+                document.getElementById('setupPurchaseCount').value = appData.setupData.purchaseCount || '';
+                document.getElementById('setupQuantity').value = appData.setupData.quantity || '';
+                document.getElementById('setupID').value = appData.setupData.id || '';
+                document.getElementById('setupNote').value = appData.setupData.note || '';
+                document.getElementById('modalSetup').classList.add('open');
+            }
+
+            function saveSetup() {
+                // Save data from modal to appData
+                appData.setupData.status = document.getElementById('setupStatus').value;
+                appData.setupData.name = document.getElementById('setupName').value;
+                appData.setupData.title = document.getElementById('setupTitle').value;
+                appData.setupData.timer = document.getElementById('setupTimer').value;
+                appData.setupData.cooldown = document.getElementById('setupCooldown').value;
+                appData.setupData.purchaseCount = document.getElementById('setupPurchaseCount').value;
+                appData.setupData.quantity = document.getElementById('setupQuantity').value;
+                appData.setupData.id = document.getElementById('setupID').value;
+                appData.setupData.note = document.getElementById('setupNote').value;
+
+                // Update offer name if setupData.name is set
+                var offerNameField = document.getElementById('offerName');
+                if(offerNameField && appData.setupData.name) {
+                    offerNameField.value = appData.setupData.name;
+                }
+
+                safeSave();
+                closeModal('modalSetup');
             }
 
             function closeModal(id) { document.getElementById(id).classList.remove('open'); }
