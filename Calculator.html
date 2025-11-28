@@ -591,8 +591,8 @@
                 <tr>
                     <th>Статус</th>
                     <th>Название</th>
-                    <th>Цена</th>
                     <th>Заголовок</th>
+                    <th>Цена</th>
                     <th>Состав</th>
                     <th>Base Value</th>
                     <th>Discount</th>
@@ -2350,8 +2350,8 @@
                     tr.innerHTML =
                         '<td>' + escapeHtml(h.status || '') + '</td>' +
                         '<td><strong>' + escapeHtml(h.name) + '</strong></td>' +
-                        '<td>$' + h.price.toFixed(2) + '</td>' +
                         '<td>' + escapeHtml(h.title || '') + '</td>' +
+                        '<td>$' + h.price.toFixed(2) + '</td>' +
                         '<td style="font-size:0.85em; color:#ccc;">' + escapeHtml(h.comp) + '</td>' +
                         '<td>$' + h.base.toFixed(2) + '</td>' +
                         '<td>' + Math.max(0, h.disc).toFixed(0) + '%</td>' +
@@ -2398,8 +2398,8 @@
                 var text = [
                     h.status || '',
                     h.name || '',
-                    '$' + h.price.toFixed(2),
                     h.title || '',
+                    '$' + h.price.toFixed(2),
                     h.comp || '',
                     '$' + h.base.toFixed(2),
                     Math.max(0, h.disc).toFixed(0) + '%',
@@ -2413,10 +2413,8 @@
                     h.note || ''
                 ].join('\t');
 
-                navigator.clipboard.writeText(text).then(function() {
-                    alert('✓ Скопировано в буфер обмена!');
-                }).catch(function(err) {
-                    alert('Не удалось скопировать:\n\n' + text);
+                navigator.clipboard.writeText(text).catch(function(err) {
+                    console.error('Failed to copy:', err);
                 });
             }
 
