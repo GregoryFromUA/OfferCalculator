@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Offer Calculator v.1.2.2</title>
+    <title>Offer Calculator v.1.2.3</title>
     <style>
         :root {
             --primary: #6200ea;
@@ -444,7 +444,7 @@
             <a id="btnImportTrigger">📂 Импорт</a>
             <input type="file" id="importFile" style="display:none">
         </div>
-        <div>Offer Calculator v.1.2.2</div>
+        <div>Offer Calculator v.1.2.3</div>
     </div>
 
     <!-- Tabs (No Onclick Here!) -->
@@ -968,7 +968,7 @@
                 leftCard.className = 'card';
                 leftCard.style.gridColumn = '1';
                 leftCard.innerHTML = '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">' +
-                    '<h3>⛓ Chain Slots</h3>' +
+                    '<h3>Chain Slots</h3>' +
                     '<button class="btn-primary btn-icon" id="btnAddSlot">+ Add Slot</button>' +
                     '</div>' +
                     '<div id="chainSlotsContainer" class="chain-container"></div>';
@@ -1024,7 +1024,8 @@
                     '<div><strong>Slot ' + (index + 1) + '</strong></div>' +
                     '<div class="slot-type-toggle">' +
                     '<button class="slot-type-btn ' + (slot.type === 'free' ? 'active' : '') + '" data-type="free" data-index="' + index + '">Free</button>' +
-                    '<button class="slot-type-btn ' + (slot.type === 'paid' ? 'active' : '') + '" data-type="paid" data-index="' + index + '">Paid</button>' +
+                    '<button class="slot-type-btn ' + (slot.type === 'paid' ? 'active' : '') + '" data-type="paid" data-index="' + index + '" ' +
+                    (slot.type === 'paid' ? 'style="background: #FFB300; color: black;"' : '') + '>Paid</button>' +
                     '</div>' +
                     '</div>';
 
