@@ -1342,15 +1342,18 @@
                     }
                 }
 
-                // Add FREE slots between previous paid and current paid (before current)
-                for(var i = prevPaidIndex + 1; i < paidSlotIndex; i++) {
-                    if(appData.chainSlots[i].type === 'free') {
-                        appData.chainSlots[i].items.forEach(function(item) {
-                            if(item.resourceId) {
-                                var res = appData.resources.find(function(r) { return r.id === item.resourceId });
-                                if(res) totalBaseValue += item.count * res.price;
-                            }
-                        });
+                // Add FREE slots BEFORE current paid ONLY if this is the first paid slot
+                // (prevents double-counting: FREE slots between two PAID slots belong to the FIRST paid only)
+                if(prevPaidIndex === -1) {
+                    for(var i = 0; i < paidSlotIndex; i++) {
+                        if(appData.chainSlots[i].type === 'free') {
+                            appData.chainSlots[i].items.forEach(function(item) {
+                                if(item.resourceId) {
+                                    var res = appData.resources.find(function(r) { return r.id === item.resourceId });
+                                    if(res) totalBaseValue += item.count * res.price;
+                                }
+                            });
+                        }
                     }
                 }
 
