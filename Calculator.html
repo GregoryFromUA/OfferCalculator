@@ -1223,12 +1223,29 @@
             }
 
             function changeSlotType(index, type) {
+                var oldType = appData.chainSlots[index].type;
                 appData.chainSlots[index].type = type;
                 if(type === 'free') {
                     appData.chainSlots[index].price = 0;
+                } else if(type === 'paid' && !appData.chainSlots[index].price) {
+                    // Set default price for new paid slot
+                    appData.chainSlots[index].price = 0.99;
                 }
                 safeSave();
+
+                // Re-render everything to update DOM structure (Free vs Paid display)
                 renderChainSlots();
+
+                // After re-render, explicitly update all paid slots and their related free slots
+                // This ensures all ownership-dependent metrics (Base Value, Discount, Free Item %) are recalculated
+                appData.chainSlots.forEach(function(slot, idx) {
+                    if(slot.type === 'paid') {
+                        updateSlotMetricsDisplay(idx);
+                        updateRelatedFreeSlots(idx);
+                    }
+                });
+
+                updateChainResults();
             }
 
             function updateSlotPrice(index, price) {
