@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Offer Calculator v.1.5.0</title>
+    <title>Offer Calculator v.1.5.1</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>💎</text></svg>">
     <style>
         :root {
@@ -453,12 +453,12 @@
             <a id="btnImportTrigger">📂 Импорт</a>
             <input type="file" id="importFile" style="display:none">
         </div>
-        <div>Offer Calculator v.1.5.0</div>
+        <div>Offer Calculator v.1.5.1</div>
     </div>
 
     <!-- Tabs (No Onclick Here!) -->
     <div class="tabs" id="tabsContainer">
-        <div class="tab-btn active" data-tab="pack" id="tab_pack">📦 Packs</div>
+        <div class="tab-btn active" data-tab="pack" id="tab_pack">📦 Offers</div>
         <div class="tab-btn" data-tab="chest" id="tab_chest">🎁 Chests</div>
         <div class="tab-btn" data-tab="blitz" id="tab_blitz">⚡ Blitz</div>
         <div class="tab-btn" data-tab="chain" id="tab_chain">⛓ Chain</div>
@@ -473,7 +473,7 @@
                     <button class="btn-sec btn-icon" id="btnOpenSetup">+ Setup</button>
                     <button class="btn-sec btn-icon" id="btnOpenTabConfig">✏ Ресы</button>
                 </div>
-                <h3 id="tabTitle">Pack Config</h3>
+                <h3 id="tabTitle">Offer Config</h3>
             </div>
 
             <!-- Mode Toggle -->
@@ -546,7 +546,7 @@
 
             <!-- Price Section -->
             <div style="margin-top: 25px; background: #252525; padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
-                <label style="color: var(--secondary); font-weight: bold; display:block; margin-bottom:5px;">ЦЕНА ПАКА ($)</label>
+                <label style="color: var(--secondary); font-weight: bold; display:block; margin-bottom:5px;">ЦЕНА ОФЕРА ($)</label>
                 
                 <input type="number" id="offerPrice" step="0.5" min="0.49" value="0.99" style="font-size: 1.4em; font-weight: bold; color: var(--warning);">
                 
@@ -592,7 +592,7 @@
     <!-- History -->
     <div class="history-container">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <h3>Офера / Результы</h3>
+            <h3>Офера / Сравнение</h3>
             <button class="btn-sec btn-icon" id="btnClearHistory">Очистить</button>
         </div>
         <table id="historyTable">
@@ -889,11 +889,11 @@
                 if(!offerNameLabel) {
                     offerNameLabel = document.querySelector('.input-group label');
                 }
-                var priceLabel = document.querySelector('label[style*="ЦЕНА ПАКА"]');
+                var priceLabel = document.querySelector('label[style*="ЦЕНА ОФЕРА"]');
                 if(!priceLabel) {
                     var labels = document.querySelectorAll('label');
                     for(var i = 0; i < labels.length; i++) {
-                        if(labels[i].textContent.includes('ЦЕНА ПАКА') || labels[i].textContent.includes('ЦЕНА СУНДУКА')) {
+                        if(labels[i].textContent.includes('ЦЕНА ОФЕРА') || labels[i].textContent.includes('ЦЕНА СУНДУКА')) {
                             priceLabel = labels[i];
                             break;
                         }
@@ -909,9 +909,9 @@
                     if(priceLabel) priceLabel.textContent = 'ЦЕНА СУНДУКА ($)';
                     if(noAdsContainer) noAdsContainer.style.display = 'none';
                 } else {
-                    if(tabTitle) tabTitle.textContent = 'Pack Config';
+                    if(tabTitle) tabTitle.textContent = 'Offer Config';
                     if(offerNameLabel) offerNameLabel.textContent = 'Название Офера';
-                    if(priceLabel) priceLabel.textContent = 'ЦЕНА ПАКА ($)';
+                    if(priceLabel) priceLabel.textContent = 'ЦЕНА ОФЕРА ($)';
                     if(noAdsContainer) noAdsContainer.style.display = 'block';
                 }
             }
