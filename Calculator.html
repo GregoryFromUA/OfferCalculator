@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Offer Calculator v.1.5.1</title>
+    <title>Offer Calculator v.1.5.2</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>💎</text></svg>">
     <style>
         :root {
@@ -453,7 +453,7 @@
             <a id="btnImportTrigger">📂 Импорт</a>
             <input type="file" id="importFile" style="display:none">
         </div>
-        <div>Offer Calculator v.1.5.1</div>
+        <div>Offer Calculator v.1.5.2</div>
     </div>
 
     <!-- Tabs (No Onclick Here!) -->
@@ -960,13 +960,13 @@
 
                 if (price > 0 && baseValue > 0) {
                     var profitRatio = (baseValue - price) / price;
-                    multi = Math.max(1, Math.round(profitRatio));
+                    multi = Math.max(1, profitRatio);
                     roi = profitRatio * 100;
                     disc = (1 - (price / baseValue)) * 100;
                 }
 
                 document.getElementById('resBase').innerText = '$' + baseValue.toFixed(2);
-                document.getElementById('resMulti').innerText = multi + "x"; 
+                document.getElementById('resMulti').innerText = multi.toFixed(2) + "x"; 
                 document.getElementById('resRoi').innerText = Math.max(0, roi).toFixed(0) + '%';
                 document.getElementById('resDisc').innerText = Math.max(0, disc).toFixed(0) + '%';
 
@@ -1924,7 +1924,7 @@
                 if(price > 0 && ev > 0) {
                     roi = ((ev - price) / price) * 100;
                     discount = (1 - (price / ev)) * 100;
-                    multi = Math.max(1, Math.round((ev - price) / price));
+                    multi = Math.max(1, (ev - price) / price);
                 }
 
                 // Render results
@@ -1959,7 +1959,7 @@
                     '</div>' +
                     '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; padding-top:10px; border-top:1px solid var(--border);">' +
                     '<div style="text-align:center;"><div style="color:var(--text-sec); font-size:0.85em;">Цена</div><div style="font-weight:bold;">$' + price.toFixed(2) + '</div></div>' +
-                    '<div style="text-align:center;"><div style="color:var(--text-sec); font-size:0.85em;">Multiplier</div><div style="font-weight:bold;">' + multi + 'x</div></div>' +
+                    '<div style="text-align:center;"><div style="color:var(--text-sec); font-size:0.85em;">Multiplier</div><div style="font-weight:bold;">' + multi.toFixed(2) + 'x</div></div>' +
                     '<div style="text-align:center;"><div style="color:var(--text-sec); font-size:0.85em;">Discount</div><div style="font-weight:bold;">' + Math.max(0, discount).toFixed(0) + '%</div></div>' +
                     '<div style="text-align:center;"><div style="color:var(--text-sec); font-size:0.85em;">Avg items</div><div style="font-weight:bold;">' + avgItems.toFixed(1) + '</div></div>' +
                     '</div>' +
@@ -2151,7 +2151,7 @@
 
                 var roi = price > 0 ? ((ev - price) / price) * 100 : 0;
                 var discount = ev > 0 ? (1 - (price / ev)) * 100 : 0;
-                var multi = Math.max(1, Math.round((ev - price) / price));
+                var multi = price > 0 ? Math.max(1, (ev - price) / price) : 0;
 
                 // Build composition string
                 var comp = [];
@@ -2507,7 +2507,7 @@
                     base: base,
                     disc: (1-(price/base))*100,
                     roi: profitRatio * 100,
-                    multi: Math.max(1, Math.round(profitRatio)),
+                    multi: Math.max(1, profitRatio),
                     timer: appData.setupData.timer || '',
                     cooldown: appData.setupData.cooldown || '',
                     purchaseCount: appData.setupData.purchaseCount || '',
@@ -2540,7 +2540,7 @@
                         '<td>$' + h.base.toFixed(2) + '</td>' +
                         '<td>' + Math.max(0, h.disc).toFixed(0) + '%</td>' +
                         '<td class="' + cls + '" style="font-weight:bold">' + Math.max(0, h.roi).toFixed(0) + '%</td>' +
-                        '<td>' + h.multi + 'x</td>' +
+                        '<td>' + h.multi.toFixed(2) + 'x</td>' +
                         '<td>' + escapeHtml(h.timer || '') + '</td>' +
                         '<td>' + escapeHtml(h.cooldown || '') + '</td>' +
                         '<td>' + escapeHtml(h.purchaseCount || '') + '</td>' +
@@ -2588,7 +2588,7 @@
                     '$' + h.base.toFixed(2),
                     Math.max(0, h.disc).toFixed(0) + '%',
                     Math.max(0, h.roi).toFixed(0) + '%',
-                    h.multi + 'x',
+                    h.multi.toFixed(2) + 'x',
                     h.timer || '',
                     h.cooldown || '',
                     h.purchaseCount || '',
