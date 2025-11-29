@@ -1373,14 +1373,18 @@
             }
 
             function calculateSlotMetrics(slot, index) {
-                // Calculate base value for current slot items only
+                // Calculate base value: for PAID slots include adjacent FREE slots, for FREE slots only own items
                 var baseValue = 0;
-                slot.items.forEach(function(item) {
-                    if(item.resourceId) {
-                        var res = appData.resources.find(function(r) { return r.id === item.resourceId });
-                        if(res) baseValue += item.count * res.price;
-                    }
-                });
+                if(slot.type === 'paid') {
+                    baseValue = getPaidSlotTotalBaseValue(index);
+                } else {
+                    slot.items.forEach(function(item) {
+                        if(item.resourceId) {
+                            var res = appData.resources.find(function(r) { return r.id === item.resourceId });
+                            if(res) baseValue += item.count * res.price;
+                        }
+                    });
+                }
 
                 // Calculate cumulative and total spent up to this slot
                 var cumulativeValue = 0;
