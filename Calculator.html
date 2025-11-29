@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Offer Calculator v.1.2.3</title>
+    <title>Offer Calculator v.1.5.0</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>💎</text></svg>">
     <style>
         :root {
             --primary: #6200ea;
@@ -170,6 +171,14 @@
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #333; font-size: 0.9em; }
         th { background: #252525; color: var(--text-sec); }
         tr:hover { background: #2c2c2c; }
+
+        /* History table column widths */
+        th:nth-child(5), td:nth-child(5) { min-width: 200px; max-width: 300px; } /* Состав - wider */
+        th:nth-child(7), td:nth-child(7) { width: 70px; max-width: 70px; } /* Discount */
+        th:nth-child(8), td:nth-child(8) { width: 70px; max-width: 70px; } /* ROI */
+        th:nth-child(9), td:nth-child(9) { width: 50px; max-width: 50px; } /* X? */
+        th:nth-child(12), td:nth-child(12) { width: 80px; max-width: 80px; } /* Purchase Count */
+        th:nth-child(13), td:nth-child(13) { width: 70px; max-width: 70px; } /* Quantity */
 
         /* Modals */
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 100; display: none; justify-content: center; align-items: center; }
@@ -444,7 +453,7 @@
             <a id="btnImportTrigger">📂 Импорт</a>
             <input type="file" id="importFile" style="display:none">
         </div>
-        <div>Offer Calculator v.1.2.3</div>
+        <div>Offer Calculator v.1.5.0</div>
     </div>
 
     <!-- Tabs (No Onclick Here!) -->
@@ -460,8 +469,11 @@
         <!-- Left: Config -->
         <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <button class="btn-sec btn-icon" id="btnOpenSetup">+ Setup</button>
+                    <button class="btn-sec btn-icon" id="btnOpenTabConfig">✏ Ресы</button>
+                </div>
                 <h3 id="tabTitle">Pack Config</h3>
-                <button class="btn-sec btn-icon" id="btnOpenTabConfig">✏ Поля</button>
             </div>
 
             <!-- Mode Toggle -->
@@ -580,19 +592,27 @@
     <!-- History -->
     <div class="history-container">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <h3>История сравнений</h3>
+            <h3>Офера / Результы</h3>
             <button class="btn-sec btn-icon" id="btnClearHistory">Очистить</button>
         </div>
         <table id="historyTable">
             <thead>
                 <tr>
+                    <th>Статус</th>
                     <th>Название</th>
+                    <th>Заголовок</th>
                     <th>Цена</th>
                     <th>Состав</th>
                     <th>Base Value</th>
                     <th>Discount</th>
                     <th>ROI</th>
-                    <th>Multiplier</th>
+                    <th>X?</th>
+                    <th>Таймер</th>
+                    <th>Кулдаун</th>
+                    <th>Purchase Count</th>
+                    <th>Quantity</th>
+                    <th>ID</th>
+                    <th>Примечание</th>
                     <th></th>
                 </tr>
             </thead>
@@ -621,11 +641,59 @@
     <div class="overlay" id="modalTabConfig">
         <div class="modal">
             <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
-                <h3>Поля вкладки</h3>
+                <h3>Ресы вкладки</h3>
                 <button class="btn-icon" id="btnCloseTabModal">✖</button>
             </div>
             <div id="tabFieldList"></div>
             <button class="btn-primary" style="margin-top:15px;" id="btnSaveTabConfig">Применить</button>
+        </div>
+    </div>
+
+    <div class="overlay" id="modalSetup">
+        <div class="modal">
+            <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+                <h3>Поля для заполнения</h3>
+                <button class="btn-icon" id="btnCloseSetupModal">✖</button>
+            </div>
+            <div style="display:grid; gap:15px;">
+                <div class="input-group">
+                    <label>Статус</label>
+                    <input type="text" id="setupStatus" placeholder="Статус">
+                </div>
+                <div class="input-group">
+                    <label>Название</label>
+                    <input type="text" id="setupName" placeholder="Название">
+                </div>
+                <div class="input-group">
+                    <label>Заголовок</label>
+                    <input type="text" id="setupTitle" placeholder="Заголовок">
+                </div>
+                <div class="input-group">
+                    <label>Таймер</label>
+                    <input type="text" id="setupTimer" placeholder="2d, 48h">
+                </div>
+                <div class="input-group">
+                    <label>Кулдаун</label>
+                    <input type="text" id="setupCooldown" placeholder="2d, 48h">
+                </div>
+                <div class="input-group">
+                    <label>Purchase Count</label>
+                    <input type="text" id="setupPurchaseCount" placeholder="Purchase Count">
+                </div>
+                <div class="input-group">
+                    <label>Quantity</label>
+                    <input type="text" id="setupQuantity" placeholder="Quantity">
+                </div>
+                <div class="input-group">
+                    <label>ID</label>
+                    <input type="text" id="setupID" placeholder="ID">
+                </div>
+                <div class="input-group">
+                    <label>Примечание</label>
+                    <input type="text" id="setupNote" placeholder="Примечание">
+                </div>
+            </div>
+            <button class="btn-primary" style="margin-top:15px;" id="btnSaveSetup">Применить</button>
         </div>
     </div>
 
@@ -662,6 +730,17 @@
                     name: '',
                     price: 0.99,
                     items: []
+                },
+                setupData: {  // Setup fields for current offer
+                    status: '',
+                    name: '',
+                    title: '',
+                    timer: '',
+                    cooldown: '',
+                    purchaseCount: '',
+                    quantity: '',
+                    id: '',
+                    note: ''
                 }
             };
 
@@ -749,10 +828,16 @@
                 // Modals
                 document.getElementById('btnCloseResModal').addEventListener('click', function() { closeModal('modalResources'); });
                 document.getElementById('btnCloseTabModal').addEventListener('click', function() { closeModal('modalTabConfig'); });
-                
+                document.getElementById('btnCloseSetupModal').addEventListener('click', function() { closeModal('modalSetup'); });
+
                 document.getElementById('btnAddNewRes').addEventListener('click', addNewResource);
                 document.getElementById('btnResetDefaults').addEventListener('click', resetDefaults);
                 document.getElementById('btnSaveTabConfig').addEventListener('click', saveTabConfig);
+                document.getElementById('btnSaveSetup').addEventListener('click', saveSetup);
+
+                // Setup Button (for normal tabs - will be re-bound after tab switch)
+                var btnOpenSetup = document.getElementById('btnOpenSetup');
+                if(btnOpenSetup) btnOpenSetup.addEventListener('click', openSetup);
             }
 
             // --- STORAGE ---
@@ -768,6 +853,7 @@
                         if(!appData.calcMode) appData.calcMode = 'normal'; // Default to normal mode
                         if(!appData.chainSlots) appData.chainSlots = []; // Default to empty chain
                         if(!appData.chestConfig) appData.chestConfig = { name: '', price: 0.99, items: [] }; // Default chest config
+                        if(!appData.setupData) appData.setupData = { status: '', name: '', title: '', timer: '', cooldown: '', purchaseCount: '', quantity: '', id: '', note: '' }; // Default setup data
                     }
                 } catch(e) {}
             }
@@ -917,9 +1003,11 @@
                     wrapper.innerHTML = originalMainWrapperHTML;
 
                     // Re-bind events for normal tab elements after restoration
+                    var btnOpenSetup = document.getElementById('btnOpenSetup');
                     var btnOpenTabConfig = document.getElementById('btnOpenTabConfig');
                     var cb_noads = document.getElementById('cb_noads');
                     var offerPrice = document.getElementById('offerPrice');
+                    if(btnOpenSetup) btnOpenSetup.addEventListener('click', openSetup);
                     if(btnOpenTabConfig) btnOpenTabConfig.addEventListener('click', openTabConfig);
                     if(cb_noads) cb_noads.addEventListener('change', calculate);
                     if(offerPrice) offerPrice.addEventListener('input', calculate);
@@ -968,8 +1056,11 @@
                 leftCard.className = 'card';
                 leftCard.style.gridColumn = '1';
                 leftCard.innerHTML = '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">' +
+                    '<div style="display:flex; gap:8px; align-items:center;">' +
+                    '<button class="btn-sec btn-icon" id="btnOpenSetup">+ Setup</button>' +
+                    '<button class="btn-primary btn-icon" id="btnAddSlot" style="padding:8px 12px;">+ Add Slot</button>' +
+                    '</div>' +
                     '<h3>Chain Slots</h3>' +
-                    '<button class="btn-primary btn-icon" id="btnAddSlot">+ Add Slot</button>' +
                     '</div>' +
                     '<div id="chainSlotsContainer" class="chain-container"></div>';
 
@@ -989,6 +1080,7 @@
                 wrapper.appendChild(rightCard);
 
                 // Bind events
+                document.getElementById('btnOpenSetup').addEventListener('click', openSetup);
                 document.getElementById('btnAddSlot').addEventListener('click', addChainSlot);
                 document.getElementById('btnCopyChain').addEventListener('click', copyChainToClipboard);
 
@@ -1120,24 +1212,65 @@
                 };
                 appData.chainSlots.push(newSlot);
                 safeSave();
+
+                // Re-render to create new slot card
                 renderChainSlots();
+
+                // Update all paid slots (new FREE slot might belong to one of them)
+                appData.chainSlots.forEach(function(slot, idx) {
+                    if(slot.type === 'paid') {
+                        updateSlotMetricsDisplay(idx);
+                        updateRelatedFreeSlots(idx);
+                    }
+                });
+
+                updateChainResults();
             }
 
             function deleteChainSlot(index) {
                 if(confirm('Delete this slot?')) {
                     appData.chainSlots.splice(index, 1);
                     safeSave();
+
+                    // Re-render to update DOM and indices
                     renderChainSlots();
+
+                    // Update all paid slots (ownership might have changed)
+                    appData.chainSlots.forEach(function(slot, idx) {
+                        if(slot.type === 'paid') {
+                            updateSlotMetricsDisplay(idx);
+                            updateRelatedFreeSlots(idx);
+                        }
+                    });
+
+                    updateChainResults();
                 }
             }
 
             function changeSlotType(index, type) {
+                var oldType = appData.chainSlots[index].type;
                 appData.chainSlots[index].type = type;
                 if(type === 'free') {
                     appData.chainSlots[index].price = 0;
+                } else if(type === 'paid' && !appData.chainSlots[index].price) {
+                    // Set default price for new paid slot
+                    appData.chainSlots[index].price = 0.99;
                 }
                 safeSave();
+
+                // Re-render everything to update DOM structure (Free vs Paid display)
                 renderChainSlots();
+
+                // After re-render, explicitly update all paid slots and their related free slots
+                // This ensures all ownership-dependent metrics (Base Value, Discount, Free Item %) are recalculated
+                appData.chainSlots.forEach(function(slot, idx) {
+                    if(slot.type === 'paid') {
+                        updateSlotMetricsDisplay(idx);
+                        updateRelatedFreeSlots(idx);
+                    }
+                });
+
+                updateChainResults();
             }
 
             function updateSlotPrice(index, price) {
@@ -1165,26 +1298,67 @@
                 // If this is a paid slot, update all related free slots
                 if(appData.chainSlots[index].type === 'paid') {
                     updateRelatedFreeSlots(index);
+                } else {
+                    // If this is a free slot, update the paid slot that owns it
+                    updateOwnerPaidSlot(index);
                 }
 
                 updateChainResults();
             }
 
-            function updateRelatedFreeSlots(paidSlotIndex) {
-                // Updates all free slots that reference this paid slot
-                // This includes:
-                // - Free slots BEFORE this paid (until previous paid or start)
-                // - Free slots AFTER this paid (until next paid or end)
+            function updateOwnerPaidSlot(freeSlotIndex) {
+                // Find the paid slot that owns this free slot
+                var ownerPaidIndex = -1;
 
-                // Update free slots BEFORE this paid slot
-                for(var i = paidSlotIndex - 1; i >= 0; i--) {
-                    if(appData.chainSlots[i].type === 'paid') break; // Stop at previous paid
-                    if(appData.chainSlots[i].type === 'free') {
-                        updateSlotMetricsDisplay(i);
+                // Step 1: Try to find last paid slot BEFORE this free slot
+                for(var i = freeSlotIndex - 1; i >= 0; i--) {
+                    if(appData.chainSlots[i].type === 'paid') {
+                        ownerPaidIndex = i;
+                        break;
                     }
                 }
 
-                // Update free slots AFTER this paid slot
+                // Step 2: If no paid before, find first paid AFTER this free slot
+                if(ownerPaidIndex === -1) {
+                    for(var i = freeSlotIndex + 1; i < appData.chainSlots.length; i++) {
+                        if(appData.chainSlots[i].type === 'paid') {
+                            ownerPaidIndex = i;
+                            break;
+                        }
+                    }
+                }
+
+                // Step 3: Update the owner paid slot's metrics
+                if(ownerPaidIndex !== -1) {
+                    updateSlotMetricsDisplay(ownerPaidIndex);
+                }
+            }
+
+            function updateRelatedFreeSlots(paidSlotIndex) {
+                // Updates all free slots that belong to this paid slot
+                // According to ownership rules:
+                // - If this is the first paid slot: update all FREE before + after
+                // - If not the first: update only FREE after (FREE before belong to previous paid)
+
+                // Check if this is the first paid slot
+                var isFirstPaid = true;
+                for(var i = 0; i < paidSlotIndex; i++) {
+                    if(appData.chainSlots[i].type === 'paid') {
+                        isFirstPaid = false;
+                        break;
+                    }
+                }
+
+                // Update free slots BEFORE this paid slot (only if this is first paid)
+                if(isFirstPaid) {
+                    for(var i = 0; i < paidSlotIndex; i++) {
+                        if(appData.chainSlots[i].type === 'free') {
+                            updateSlotMetricsDisplay(i);
+                        }
+                    }
+                }
+
+                // Always update free slots AFTER this paid slot
                 for(var i = paidSlotIndex + 1; i < appData.chainSlots.length; i++) {
                     if(appData.chainSlots[i].type === 'paid') break; // Stop at next paid
                     if(appData.chainSlots[i].type === 'free') {
@@ -1220,15 +1394,80 @@
                 metricsContainer.innerHTML = html;
             }
 
-            function calculateSlotMetrics(slot, index) {
-                // Calculate base value
-                var baseValue = 0;
-                slot.items.forEach(function(item) {
+            // Helper function: Calculate paid slot's total base value including adjacent free slots
+            function getPaidSlotTotalBaseValue(paidSlotIndex) {
+                var totalBaseValue = 0;
+
+                // Add paid slot's own items
+                var paidSlot = appData.chainSlots[paidSlotIndex];
+                paidSlot.items.forEach(function(item) {
                     if(item.resourceId) {
                         var res = appData.resources.find(function(r) { return r.id === item.resourceId });
-                        if(res) baseValue += item.count * res.price;
+                        if(res) totalBaseValue += item.count * res.price;
                     }
                 });
+
+                // Find previous paid slot index (or -1 if this is first paid)
+                var prevPaidIndex = -1;
+                for(var i = paidSlotIndex - 1; i >= 0; i--) {
+                    if(appData.chainSlots[i].type === 'paid') {
+                        prevPaidIndex = i;
+                        break;
+                    }
+                }
+
+                // Find next paid slot index (or slots.length if this is last paid)
+                var nextPaidIndex = appData.chainSlots.length;
+                for(var i = paidSlotIndex + 1; i < appData.chainSlots.length; i++) {
+                    if(appData.chainSlots[i].type === 'paid') {
+                        nextPaidIndex = i;
+                        break;
+                    }
+                }
+
+                // Add FREE slots BEFORE current paid ONLY if this is the first paid slot
+                // (prevents double-counting: FREE slots between two PAID slots belong to the FIRST paid only)
+                if(prevPaidIndex === -1) {
+                    for(var i = 0; i < paidSlotIndex; i++) {
+                        if(appData.chainSlots[i].type === 'free') {
+                            appData.chainSlots[i].items.forEach(function(item) {
+                                if(item.resourceId) {
+                                    var res = appData.resources.find(function(r) { return r.id === item.resourceId });
+                                    if(res) totalBaseValue += item.count * res.price;
+                                }
+                            });
+                        }
+                    }
+                }
+
+                // Add FREE slots between current paid and next paid (after current)
+                for(var i = paidSlotIndex + 1; i < nextPaidIndex; i++) {
+                    if(appData.chainSlots[i].type === 'free') {
+                        appData.chainSlots[i].items.forEach(function(item) {
+                            if(item.resourceId) {
+                                var res = appData.resources.find(function(r) { return r.id === item.resourceId });
+                                if(res) totalBaseValue += item.count * res.price;
+                            }
+                        });
+                    }
+                }
+
+                return totalBaseValue;
+            }
+
+            function calculateSlotMetrics(slot, index) {
+                // Calculate base value: for PAID slots include adjacent FREE slots, for FREE slots only own items
+                var baseValue = 0;
+                if(slot.type === 'paid') {
+                    baseValue = getPaidSlotTotalBaseValue(index);
+                } else {
+                    slot.items.forEach(function(item) {
+                        if(item.resourceId) {
+                            var res = appData.resources.find(function(r) { return r.id === item.resourceId });
+                            if(res) baseValue += item.count * res.price;
+                        }
+                    });
+                }
 
                 // Calculate cumulative and total spent up to this slot
                 var cumulativeValue = 0;
@@ -1246,41 +1485,44 @@
                     }
                 }
 
-                // Calculate discount for paid slots
+                // Calculate discount for PAID slots (including adjacent FREE slots)
                 var discount = 0;
-                if(slot.type === 'paid' && slot.price > 0 && baseValue > 0) {
-                    discount = (1 - (slot.price / baseValue)) * 100;
+                if(slot.type === 'paid') {
+                    var paidSlotTotalBaseValue = getPaidSlotTotalBaseValue(index);
+                    if(slot.price > 0 && paidSlotTotalBaseValue > 0) {
+                        discount = (1 - (slot.price / paidSlotTotalBaseValue)) * 100;
+                    }
                 }
 
-                // Calculate free item % for free slots
-                // New logic: Free slots calculate % relative to reference paid slot
-                // - If free slot is BEFORE any paid slot → use first paid slot AFTER
-                // - If free slot is AFTER paid slot → use last paid slot BEFORE
+                // Calculate Free Item % for FREE slots
                 var freeItemPercent = 0;
                 if(slot.type === 'free') {
-                    var referencePaidSlot = null;
+                    var referencePaidSlotIndex = -1;
 
                     // Step 1: Try to find last paid slot BEFORE current
                     for(var i = index - 1; i >= 0; i--) {
                         if(appData.chainSlots[i].type === 'paid') {
-                            referencePaidSlot = appData.chainSlots[i];
+                            referencePaidSlotIndex = i;
                             break;
                         }
                     }
 
                     // Step 2: If not found, find first paid slot AFTER current
-                    if(!referencePaidSlot) {
+                    if(referencePaidSlotIndex === -1) {
                         for(var i = index + 1; i < appData.chainSlots.length; i++) {
                             if(appData.chainSlots[i].type === 'paid') {
-                                referencePaidSlot = appData.chainSlots[i];
+                                referencePaidSlotIndex = i;
                                 break;
                             }
                         }
                     }
 
-                    // Step 3: Calculate percentage relative to reference paid slot
-                    if(referencePaidSlot && referencePaidSlot.price > 0) {
-                        freeItemPercent = (baseValue / referencePaidSlot.price) * 100;
+                    // Step 3: Calculate percentage relative to reference paid slot's TOTAL BASE VALUE
+                    if(referencePaidSlotIndex >= 0) {
+                        var refPaidTotalBaseValue = getPaidSlotTotalBaseValue(referencePaidSlotIndex);
+                        if(refPaidTotalBaseValue > 0) {
+                            freeItemPercent = (baseValue / refPaidTotalBaseValue) * 100;
+                        }
                     }
                 }
 
@@ -2173,7 +2415,8 @@
             function copyResultToClipboard() {
                 var name = document.getElementById('offerName').value || 'Offer';
                 var price = parseFloat(document.getElementById('offerPrice').value) || 0;
-                var base = document.getElementById('resBase').innerText;
+                var baseText = document.getElementById('resBase').innerText;
+                var base = parseFloat(baseText.replace('$',''));
                 var multi = document.getElementById('resMulti').innerText;
                 var roi = document.getElementById('resRoi').innerText;
                 var disc = document.getElementById('resDisc').innerText;
@@ -2189,26 +2432,50 @@
                 });
                 if(document.getElementById('cb_noads').checked) comps.push("No Ads");
 
-                // Format text: "Name ($price): composition. Value: $base (Xx) | ROI% | Discount%"
-                var composition = comps.length > 0 ? comps.join(', ') : 'empty';
-                var text = name + ' ($' + price.toFixed(2) + '): ' + composition +
-                           '. Value: ' + base + ' (' + multi + ') | ROI: ' + roi + ' | Discount: ' + disc;
+                var composition = comps.length > 0 ? comps.join(', ') : '';
+
+                // Format: tab-delimited for Excel/Google Sheets (same as history copy)
+                var text = [
+                    appData.setupData.status || '',
+                    name,
+                    appData.setupData.title || '',
+                    '$' + price.toFixed(2),
+                    composition,
+                    baseText,
+                    disc,
+                    roi,
+                    multi,
+                    appData.setupData.timer || '',
+                    appData.setupData.cooldown || '',
+                    appData.setupData.purchaseCount || '',
+                    appData.setupData.quantity || '',
+                    appData.setupData.id || '',
+                    appData.setupData.note || ''
+                ].join('\t');
 
                 // Copy to clipboard
+                var btn = document.getElementById('btnCopyResult');
+                var originalText = btn.innerHTML;
+
                 navigator.clipboard.writeText(text).then(function() {
-                    // Show feedback
-                    var btn = document.getElementById('btnCopyResult');
-                    var originalText = btn.innerHTML;
-                    btn.innerHTML = '✓ Copied!';
+                    // Show success feedback
+                    btn.innerHTML = '✓';
                     btn.style.background = 'var(--success)';
 
                     setTimeout(function() {
                         btn.innerHTML = originalText;
                         btn.style.background = '';
-                    }, 2000);
+                    }, 800);
                 }).catch(function(err) {
-                    // Fallback for older browsers
-                    alert('Не удалось скопировать. Попробуйте выделить текст вручную:\n\n' + text);
+                    // Show error feedback
+                    console.error('Failed to copy:', err);
+                    btn.innerHTML = '✗';
+                    btn.style.background = 'var(--danger)';
+
+                    setTimeout(function() {
+                        btn.innerHTML = originalText;
+                        btn.style.background = '';
+                    }, 800);
                 });
             }
 
@@ -2232,13 +2499,21 @@
                 var profitRatio = (base - price) / price;
                 var item = {
                     id: Date.now(),
+                    status: appData.setupData.status || '',
                     name: document.getElementById('offerName').value || 'Offer #' + (appData.history.length + 1),
                     price: price,
-                    base: base,
+                    title: appData.setupData.title || '',
                     comp: comps.join(', '),
-                    roi: profitRatio * 100,
+                    base: base,
                     disc: (1-(price/base))*100,
-                    multi: Math.max(1, Math.round(profitRatio))
+                    roi: profitRatio * 100,
+                    multi: Math.max(1, Math.round(profitRatio)),
+                    timer: appData.setupData.timer || '',
+                    cooldown: appData.setupData.cooldown || '',
+                    purchaseCount: appData.setupData.purchaseCount || '',
+                    quantity: appData.setupData.quantity || '',
+                    offerId: appData.setupData.id || '',
+                    note: appData.setupData.note || ''
                 };
                 appData.history.unshift(item);
                 safeSave();
@@ -2256,16 +2531,30 @@
                     if(h.roi >= 500) cls = 'text-legendary';
 
                     var tr = document.createElement('tr');
-                    tr.innerHTML = 
+                    tr.innerHTML =
+                        '<td>' + escapeHtml(h.status || '') + '</td>' +
                         '<td><strong>' + escapeHtml(h.name) + '</strong></td>' +
+                        '<td>' + escapeHtml(h.title || '') + '</td>' +
                         '<td>$' + h.price.toFixed(2) + '</td>' +
                         '<td style="font-size:0.85em; color:#ccc;">' + escapeHtml(h.comp) + '</td>' +
                         '<td>$' + h.base.toFixed(2) + '</td>' +
                         '<td>' + Math.max(0, h.disc).toFixed(0) + '%</td>' +
                         '<td class="' + cls + '" style="font-weight:bold">' + Math.max(0, h.roi).toFixed(0) + '%</td>' +
                         '<td>' + h.multi + 'x</td>' +
-                        '<td><button class="btn-danger btn-icon btn-del-hist">×</button></td>';
-                    
+                        '<td>' + escapeHtml(h.timer || '') + '</td>' +
+                        '<td>' + escapeHtml(h.cooldown || '') + '</td>' +
+                        '<td>' + escapeHtml(h.purchaseCount || '') + '</td>' +
+                        '<td>' + escapeHtml(h.quantity || '') + '</td>' +
+                        '<td>' + escapeHtml(h.offerId || '') + '</td>' +
+                        '<td>' + escapeHtml(h.note || '') + '</td>' +
+                        '<td style="white-space:nowrap;">' +
+                            '<button class="btn-sec btn-icon btn-copy-hist" title="Копировать">📋</button>' +
+                            '<button class="btn-sec btn-icon btn-edit-hist" title="Редактировать" style="margin:0 5px;">✏️</button>' +
+                            '<button class="btn-danger btn-icon btn-del-hist" title="Удалить">×</button>' +
+                        '</td>';
+
+                    tr.querySelector('.btn-copy-hist').addEventListener('click', function(e) { copyHistoryItem(idx, e.target); });
+                    tr.querySelector('.btn-edit-hist').addEventListener('click', function(e) { editHistoryItem(idx, e.target); });
                     tr.querySelector('.btn-del-hist').addEventListener('click', function() { delHistory(idx); });
                     tbody.appendChild(tr);
                 });
@@ -2285,6 +2574,132 @@
                     safeSave();
                     renderHistory();
                 }
+            }
+
+            function copyHistoryItem(idx, btn) {
+                var h = appData.history[idx];
+                // Format: all fields separated by tabs for Excel/Google Sheets
+                var text = [
+                    h.status || '',
+                    h.name || '',
+                    h.title || '',
+                    '$' + h.price.toFixed(2),
+                    h.comp || '',
+                    '$' + h.base.toFixed(2),
+                    Math.max(0, h.disc).toFixed(0) + '%',
+                    Math.max(0, h.roi).toFixed(0) + '%',
+                    h.multi + 'x',
+                    h.timer || '',
+                    h.cooldown || '',
+                    h.purchaseCount || '',
+                    h.quantity || '',
+                    h.offerId || '',
+                    h.note || ''
+                ].join('\t');
+
+                // Visual feedback
+                var originalText = btn.innerHTML;
+                var originalBg = btn.style.background;
+                btn.innerHTML = '✓';
+                btn.style.background = 'var(--success)';
+
+                setTimeout(function() {
+                    btn.innerHTML = originalText;
+                    btn.style.background = originalBg;
+                }, 800);
+
+                navigator.clipboard.writeText(text).catch(function(err) {
+                    console.error('Failed to copy:', err);
+                    btn.innerHTML = '✗';
+                    btn.style.background = 'var(--danger)';
+                    setTimeout(function() {
+                        btn.innerHTML = originalText;
+                        btn.style.background = originalBg;
+                    }, 800);
+                });
+            }
+
+            function editHistoryItem(idx, btn) {
+                var h = appData.history[idx];
+
+                // Visual feedback
+                var originalText = btn.innerHTML;
+                var originalBg = btn.style.background;
+                btn.innerHTML = '✓';
+                btn.style.background = 'var(--success)';
+
+                setTimeout(function() {
+                    btn.innerHTML = originalText;
+                    btn.style.background = originalBg;
+                }, 800);
+
+                // Populate Setup modal fields
+                appData.setupData.status = h.status || '';
+                appData.setupData.name = h.name || '';
+                appData.setupData.title = h.title || '';
+                appData.setupData.timer = h.timer || '';
+                appData.setupData.cooldown = h.cooldown || '';
+                appData.setupData.purchaseCount = h.purchaseCount || '';
+                appData.setupData.quantity = h.quantity || '';
+                appData.setupData.id = h.offerId || '';
+                appData.setupData.note = h.note || '';
+
+                // Fill Setup modal
+                document.getElementById('setupStatus').value = h.status || '';
+                document.getElementById('setupName').value = h.name || '';
+                document.getElementById('setupTitle').value = h.title || '';
+                document.getElementById('setupTimer').value = h.timer || '';
+                document.getElementById('setupCooldown').value = h.cooldown || '';
+                document.getElementById('setupPurchaseCount').value = h.purchaseCount || '';
+                document.getElementById('setupQuantity').value = h.quantity || '';
+                document.getElementById('setupID').value = h.offerId || '';
+                document.getElementById('setupNote').value = h.note || '';
+
+                // Fill offer name field
+                var offerNameField = document.getElementById('offerName');
+                if(offerNameField) {
+                    offerNameField.value = h.name || '';
+                }
+
+                // Fill price field
+                var priceField = document.getElementById('offerPrice');
+                if(priceField) {
+                    priceField.value = h.price;
+                }
+
+                // Fill resource inputs based on comp field
+                // This is a best-effort approach - parsing the comp string
+                var inputs = document.querySelectorAll('#dynamicInputs .calc-input');
+                inputs.forEach(function(inp) { inp.value = 0; }); // Reset all inputs
+
+                if(h.comp) {
+                    var parts = h.comp.split(', ');
+                    parts.forEach(function(part) {
+                        if(part === 'No Ads') {
+                            var noAdsCheckbox = document.getElementById('cb_noads');
+                            if(noAdsCheckbox) noAdsCheckbox.checked = true;
+                        } else {
+                            // Parse "10 Gem" format
+                            var match = part.match(/^(\d+(?:\.\d+)?)\s+(.+)$/);
+                            if(match) {
+                                var qty = parseFloat(match[1]);
+                                var resName = match[2];
+                                var res = appData.resources.find(function(r) { return r.name === resName; });
+                                if(res) {
+                                    var input = document.querySelector('#dynamicInputs .calc-input[data-id="' + res.id + '"]');
+                                    if(input) input.value = qty;
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Trigger calculation
+                if(typeof calculate === 'function') {
+                    calculate();
+                }
+
+                safeSave();
             }
 
             // --- SETTINGS ---
@@ -2382,6 +2797,42 @@
                 closeModal('modalTabConfig');
                 renderInputs();
                 calculate();
+            }
+
+            function openSetup() {
+                // Load current Setup data into modal
+                document.getElementById('setupStatus').value = appData.setupData.status || '';
+                document.getElementById('setupName').value = appData.setupData.name || '';
+                document.getElementById('setupTitle').value = appData.setupData.title || '';
+                document.getElementById('setupTimer').value = appData.setupData.timer || '';
+                document.getElementById('setupCooldown').value = appData.setupData.cooldown || '';
+                document.getElementById('setupPurchaseCount').value = appData.setupData.purchaseCount || '';
+                document.getElementById('setupQuantity').value = appData.setupData.quantity || '';
+                document.getElementById('setupID').value = appData.setupData.id || '';
+                document.getElementById('setupNote').value = appData.setupData.note || '';
+                document.getElementById('modalSetup').classList.add('open');
+            }
+
+            function saveSetup() {
+                // Save data from modal to appData
+                appData.setupData.status = document.getElementById('setupStatus').value;
+                appData.setupData.name = document.getElementById('setupName').value;
+                appData.setupData.title = document.getElementById('setupTitle').value;
+                appData.setupData.timer = document.getElementById('setupTimer').value;
+                appData.setupData.cooldown = document.getElementById('setupCooldown').value;
+                appData.setupData.purchaseCount = document.getElementById('setupPurchaseCount').value;
+                appData.setupData.quantity = document.getElementById('setupQuantity').value;
+                appData.setupData.id = document.getElementById('setupID').value;
+                appData.setupData.note = document.getElementById('setupNote').value;
+
+                // Update offer name if setupData.name is set
+                var offerNameField = document.getElementById('offerName');
+                if(offerNameField && appData.setupData.name) {
+                    offerNameField.value = appData.setupData.name;
+                }
+
+                safeSave();
+                closeModal('modalSetup');
             }
 
             function closeModal(id) { document.getElementById(id).classList.remove('open'); }
