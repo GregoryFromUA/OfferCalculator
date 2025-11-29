@@ -1256,26 +1256,67 @@
                 // If this is a paid slot, update all related free slots
                 if(appData.chainSlots[index].type === 'paid') {
                     updateRelatedFreeSlots(index);
+                } else {
+                    // If this is a free slot, update the paid slot that owns it
+                    updateOwnerPaidSlot(index);
                 }
 
                 updateChainResults();
             }
 
-            function updateRelatedFreeSlots(paidSlotIndex) {
-                // Updates all free slots that reference this paid slot
-                // This includes:
-                // - Free slots BEFORE this paid (until previous paid or start)
-                // - Free slots AFTER this paid (until next paid or end)
+            function updateOwnerPaidSlot(freeSlotIndex) {
+                // Find the paid slot that owns this free slot
+                var ownerPaidIndex = -1;
 
-                // Update free slots BEFORE this paid slot
-                for(var i = paidSlotIndex - 1; i >= 0; i--) {
-                    if(appData.chainSlots[i].type === 'paid') break; // Stop at previous paid
-                    if(appData.chainSlots[i].type === 'free') {
-                        updateSlotMetricsDisplay(i);
+                // Step 1: Try to find last paid slot BEFORE this free slot
+                for(var i = freeSlotIndex - 1; i >= 0; i--) {
+                    if(appData.chainSlots[i].type === 'paid') {
+                        ownerPaidIndex = i;
+                        break;
                     }
                 }
 
-                // Update free slots AFTER this paid slot
+                // Step 2: If no paid before, find first paid AFTER this free slot
+                if(ownerPaidIndex === -1) {
+                    for(var i = freeSlotIndex + 1; i < appData.chainSlots.length; i++) {
+                        if(appData.chainSlots[i].type === 'paid') {
+                            ownerPaidIndex = i;
+                            break;
+                        }
+                    }
+                }
+
+                // Step 3: Update the owner paid slot's metrics
+                if(ownerPaidIndex !== -1) {
+                    updateSlotMetricsDisplay(ownerPaidIndex);
+                }
+            }
+
+            function updateRelatedFreeSlots(paidSlotIndex) {
+                // Updates all free slots that belong to this paid slot
+                // According to ownership rules:
+                // - If this is the first paid slot: update all FREE before + after
+                // - If not the first: update only FREE after (FREE before belong to previous paid)
+
+                // Check if this is the first paid slot
+                var isFirstPaid = true;
+                for(var i = 0; i < paidSlotIndex; i++) {
+                    if(appData.chainSlots[i].type === 'paid') {
+                        isFirstPaid = false;
+                        break;
+                    }
+                }
+
+                // Update free slots BEFORE this paid slot (only if this is first paid)
+                if(isFirstPaid) {
+                    for(var i = 0; i < paidSlotIndex; i++) {
+                        if(appData.chainSlots[i].type === 'free') {
+                            updateSlotMetricsDisplay(i);
+                        }
+                    }
+                }
+
+                // Always update free slots AFTER this paid slot
                 for(var i = paidSlotIndex + 1; i < appData.chainSlots.length; i++) {
                     if(appData.chainSlots[i].type === 'paid') break; // Stop at next paid
                     if(appData.chainSlots[i].type === 'free') {
