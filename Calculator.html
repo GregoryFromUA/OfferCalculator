@@ -1311,8 +1311,66 @@
                 metricsContainer.innerHTML = html;
             }
 
+            // Helper function: Calculate paid slot's total base value including adjacent free slots
+            function getPaidSlotTotalBaseValue(paidSlotIndex) {
+                var totalBaseValue = 0;
+
+                // Add paid slot's own items
+                var paidSlot = appData.chainSlots[paidSlotIndex];
+                paidSlot.items.forEach(function(item) {
+                    if(item.resourceId) {
+                        var res = appData.resources.find(function(r) { return r.id === item.resourceId });
+                        if(res) totalBaseValue += item.count * res.price;
+                    }
+                });
+
+                // Find previous paid slot index (or -1 if this is first paid)
+                var prevPaidIndex = -1;
+                for(var i = paidSlotIndex - 1; i >= 0; i--) {
+                    if(appData.chainSlots[i].type === 'paid') {
+                        prevPaidIndex = i;
+                        break;
+                    }
+                }
+
+                // Find next paid slot index (or slots.length if this is last paid)
+                var nextPaidIndex = appData.chainSlots.length;
+                for(var i = paidSlotIndex + 1; i < appData.chainSlots.length; i++) {
+                    if(appData.chainSlots[i].type === 'paid') {
+                        nextPaidIndex = i;
+                        break;
+                    }
+                }
+
+                // Add FREE slots between previous paid and current paid (before current)
+                for(var i = prevPaidIndex + 1; i < paidSlotIndex; i++) {
+                    if(appData.chainSlots[i].type === 'free') {
+                        appData.chainSlots[i].items.forEach(function(item) {
+                            if(item.resourceId) {
+                                var res = appData.resources.find(function(r) { return r.id === item.resourceId });
+                                if(res) totalBaseValue += item.count * res.price;
+                            }
+                        });
+                    }
+                }
+
+                // Add FREE slots between current paid and next paid (after current)
+                for(var i = paidSlotIndex + 1; i < nextPaidIndex; i++) {
+                    if(appData.chainSlots[i].type === 'free') {
+                        appData.chainSlots[i].items.forEach(function(item) {
+                            if(item.resourceId) {
+                                var res = appData.resources.find(function(r) { return r.id === item.resourceId });
+                                if(res) totalBaseValue += item.count * res.price;
+                            }
+                        });
+                    }
+                }
+
+                return totalBaseValue;
+            }
+
             function calculateSlotMetrics(slot, index) {
-                // Calculate base value
+                // Calculate base value for current slot items only
                 var baseValue = 0;
                 slot.items.forEach(function(item) {
                     if(item.resourceId) {
@@ -1337,41 +1395,44 @@
                     }
                 }
 
-                // Calculate discount for paid slots
+                // Calculate discount for PAID slots (including adjacent FREE slots)
                 var discount = 0;
-                if(slot.type === 'paid' && slot.price > 0 && baseValue > 0) {
-                    discount = (1 - (slot.price / baseValue)) * 100;
+                if(slot.type === 'paid') {
+                    var paidSlotTotalBaseValue = getPaidSlotTotalBaseValue(index);
+                    if(slot.price > 0 && paidSlotTotalBaseValue > 0) {
+                        discount = (1 - (slot.price / paidSlotTotalBaseValue)) * 100;
+                    }
                 }
 
-                // Calculate free item % for free slots
-                // New logic: Free slots calculate % relative to reference paid slot
-                // - If free slot is BEFORE any paid slot → use first paid slot AFTER
-                // - If free slot is AFTER paid slot → use last paid slot BEFORE
+                // Calculate Free Item % for FREE slots
                 var freeItemPercent = 0;
                 if(slot.type === 'free') {
-                    var referencePaidSlot = null;
+                    var referencePaidSlotIndex = -1;
 
                     // Step 1: Try to find last paid slot BEFORE current
                     for(var i = index - 1; i >= 0; i--) {
                         if(appData.chainSlots[i].type === 'paid') {
-                            referencePaidSlot = appData.chainSlots[i];
+                            referencePaidSlotIndex = i;
                             break;
                         }
                     }
 
                     // Step 2: If not found, find first paid slot AFTER current
-                    if(!referencePaidSlot) {
+                    if(referencePaidSlotIndex === -1) {
                         for(var i = index + 1; i < appData.chainSlots.length; i++) {
                             if(appData.chainSlots[i].type === 'paid') {
-                                referencePaidSlot = appData.chainSlots[i];
+                                referencePaidSlotIndex = i;
                                 break;
                             }
                         }
                     }
 
-                    // Step 3: Calculate percentage relative to reference paid slot
-                    if(referencePaidSlot && referencePaidSlot.price > 0) {
-                        freeItemPercent = (baseValue / referencePaidSlot.price) * 100;
+                    // Step 3: Calculate percentage relative to reference paid slot's TOTAL BASE VALUE
+                    if(referencePaidSlotIndex >= 0) {
+                        var refPaidTotalBaseValue = getPaidSlotTotalBaseValue(referencePaidSlotIndex);
+                        if(refPaidTotalBaseValue > 0) {
+                            freeItemPercent = (baseValue / refPaidTotalBaseValue) * 100;
+                        }
                     }
                 }
 
