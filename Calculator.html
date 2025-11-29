@@ -1211,14 +1211,38 @@
                 };
                 appData.chainSlots.push(newSlot);
                 safeSave();
+
+                // Re-render to create new slot card
                 renderChainSlots();
+
+                // Update all paid slots (new FREE slot might belong to one of them)
+                appData.chainSlots.forEach(function(slot, idx) {
+                    if(slot.type === 'paid') {
+                        updateSlotMetricsDisplay(idx);
+                        updateRelatedFreeSlots(idx);
+                    }
+                });
+
+                updateChainResults();
             }
 
             function deleteChainSlot(index) {
                 if(confirm('Delete this slot?')) {
                     appData.chainSlots.splice(index, 1);
                     safeSave();
+
+                    // Re-render to update DOM and indices
                     renderChainSlots();
+
+                    // Update all paid slots (ownership might have changed)
+                    appData.chainSlots.forEach(function(slot, idx) {
+                        if(slot.type === 'paid') {
+                            updateSlotMetricsDisplay(idx);
+                            updateRelatedFreeSlots(idx);
+                        }
+                    });
+
+                    updateChainResults();
                 }
             }
 
